@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Limonera VR Tour</title>
+    <!-- Core A-Frame -->
+    <script src="https://aframe.io/releases/1.8.0/aframe.min.js"></script>
+    <!-- Extras for thumbstick locomotion -->
+    <script src="https://cdn.jsdelivr.net/gh/c-frame/aframe-extras@7.5.4/dist/aframe-extras.min.js"></script>
+    <!-- Environment component -->
+    <script src="https://unpkg.com/aframe-environment-component@1.5.x/dist/aframe-environment-component.min.js"></script>
+
+    <script>
+      // 1. Global Telemetry Logger (Direct to console.log with formatted 3D vectors)
+      window.VRLog = {
+        log: function (step, title, data = {}) {
+          const timestamp = new Date().toISOString().substring(11, 23);
+          const formatted = Object.entries(data)
+            .map(([k, v]) => {
+              if (v && typeof v.x === 'number' && typeof v.y === 'number' && typeof v.z === 'number') {
+                return `${k}=(${v.x.toFixed(3)}, ${v.y.toFixed(3)}, ${v.z.toFixed(3)})`;
+              }
+              return `${k}=${v}`;
+            })
+            .join(' | ');
+
+          console.log(
+            `%c[${timestamp}] [STEP ${step}] ${title} -> ${formatted}`,
+            'color: #00e5ff; font-weight: bold; background: #0f172a; padding: 2px 6px; border-radius: 3px;'
+          );
+        }
+      };
+
+      // Global Debug Flag (controls bounding box & helper visibility)
+      window.VR_DEBUG = true;
+
+      // Programmatically launches the A-Frame VR Inspector
+      window.openInspector = function () {
+        const scene = document.querySelector('a-scene');
+        if (scene && scene.is('vr-mode')) {
+          scene.exitVR();
+        }
+
+        if (scene && scene.components && scene.components.inspector) {
+          scene.components.inspector.openInspector();
+          return;
+        }
+
+        window.postMessage('INJECT_AFRAME_INSPECTOR', '*');
+
+        if (!document.querySelector('script[src*="aframe-inspector"]')) {
+          const script = document.createElement('script');
+          script.src = 'https://cdn.jsdelivr.net/gh/aframevr/aframe-inspector@master/dist/aframe-inspector.min.js';
+          script.onload = () => {
+            setTimeout(() => {
+              if (scene && scene.components && scene.components.inspector) {
+                scene.components.inspector.openInspector();
+              }
+            }, 300);
+          };
+          document.head.appendChild(script);
+        }
+      };
+
+      // Toggles debug mode: hides/shows bounding boxes and opens the inspector
+      window.toggleDebug = function () {
+        window.VR_DEBUG = !window.VR_DEBUG;
+
+        // Toggle bounding boxes on all items
+        document.querySelectorAll('.grab-collider').forEach((col) => {
+          col.setAttribute('visible', window.VR_DEBUG);
+        });
+
+        // Toggle hand indicator spheres
+        document.querySelectorAll('.hand-indicator').forEach((sphere) => {
+          sphere.setAttribute('visible', window.VR_DEBUG);
+        });
+
+        window.VRLog.log(0, 'DEBUG TOGGLE', {
+          debugEnabled: window.VR_DEBUG,
+          action: window.VR_DEBUG ? 'BOUNDS SHOWN' : 'BOUNDS HIDDEN & LAUNCHING INSPECTOR'
+        });
+
+        // Update UI labels
+        const statusText = document.querySelector('#menu-status');
+        if (statusText) {
+          statusText.setAttribute('value', window.VR_DEBUG ? 'DEBUG: ON' : 'DEBUG: OFF / INSP');
+          setTimeout(() => statusText.setAttribute('value', 'ASSETS'), 2500);
+        }
+
+        const debugBtnText = document.querySelector('#debug-btn-text');
+        if (debugBtnText) {
+          debugBtnText.setAttribute('value', window.VR_DEBUG ? 'HIDE BOUNDS & INSP' : 'SHOW BOUNDS & INSP');
+        }
+
+        const deskBtn = document.querySelector('#desktop-debug-btn');
+        if (deskBtn) {
+          deskBtn.textContent = window.VR_DEBUG ? 'Hide Bounds & Launch Inspector' : 'Show Bounds & Launch Inspector';
+        }
+
+        // Trigger inspector
+        window.openInspector();
+      };
+
+      // 2. Component: Computes model bounding box, resets mesh origin to (0,0,0), and builds collider
+      AFRAME.registerComponent('make-grabbable', {
+        init: function () {
+          const el = this.el;
+
+          el.addEventListener('model-loaded', () => {
+            const obj = el.getObject3D('mesh');
+            if (!obj) {
+              window.VRLog.log(2, 'GLTF ERROR', { reason: 'No mesh returned' });
+              return;
+            }
+
+            // Update world matrices for accurate coordinate transformations
+            obj.updateMatrixWorld(true);
+            el.object3D.updateMatrixWorld(true);
+
+            // Compute raw bounding box of the loaded mesh
+            const bbox = new THREE.Box3().setFromObject(obj);
+            const size = new THREE.Vector3();
+            bbox.getSize(size);
+            const worldCenter = new THREE.Vector3();
+            bbox.getCenter(worldCenter);
+
+            // Compute offset of the mesh geometric center relative to entity root
+            const localCenter = el.object3D.worldToLocal(worldCenter.clone());
+
+            // RESET ORIGIN: Shift the mesh so its visual center is exactly at (0, 0, 0)
+            obj.position.sub(localCenter);
+            obj.updateMatrixWorld(true);
+
+            const w = Math.max(size.x * 1.05, 0.3);
+            const h = Math.max(size.y * 1.05, 0.3);
+            const d = Math.max(size.z * 1.05, 0.3);
+            el.grabRadius = Math.max(w, h, d) / 1.4;
+
+            window.VRLog.log(2, 'ORIGIN RESET & BOUNDS', {
+              bboxSize: size,
+              originShift: localCenter,
+              assignedRadius: el.grabRadius.toFixed(3) + 'm'
+            });
+
+            // Clean up previous colliders if present
+            const oldCollider = el.querySelector('.grab-collider');
+            if (oldCollider) el.removeChild(oldCollider);
+
+            // Create red wireframe outer box directly at centered origin (0 0 0)
+            const collider = document.createElement('a-box');
+            collider.classList.add('grab-collider');
+            collider.setAttribute('width', w);
+            collider.setAttribute('height', h);
+            collider.setAttribute('depth', d);
+            collider.setAttribute('position', '0 0 0');
+            collider.setAttribute('visible', window.VR_DEBUG !== false);
+            collider.setAttribute('material', 'color: #ff0000; wireframe: true; opacity: 0.85; transparent: true');
+
+            // Inner translucent box core for depth readability
+            const core = document.createElement('a-box');
+            core.setAttribute('width', w * 0.96);
+            core.setAttribute('height', h * 0.96);
+            core.setAttribute('depth', d * 0.96);
+            core.setAttribute('position', '0 0 0');
+            core.setAttribute('material', 'color: #ff2222; opacity: 0.25; transparent: true');
+            collider.appendChild(core);
+
+            el.appendChild(collider);
+          });
+        }
+      });
+
+      // 3. Component: Native VR Grabber with vector math
+      AFRAME.registerComponent('vr-grabber', {
+        schema: {
+          hand: { type: 'string', default: 'controller' }
+        },
+        init: function () {
+          this.grabbedEl = null;
+          this.controllerWorldPos = new THREE.Vector3();
+          this.itemWorldPos = new THREE.Vector3();
+
+          // Squeeze Grip to Pick Up
+          this.el.addEventListener('gripdown', () => {
+            this.el.object3D.getWorldPosition(this.controllerWorldPos);
+
+            if (this.grabbedEl) {
+              window.VRLog.log(3, 'GRIP IGNORED', { hand: this.data.hand, reason: 'Already holding an item' });
+              return;
+            }
+
+            const candidates = document.querySelectorAll('.grabbable-item');
+            let closest = null;
+            let minDistance = 999;
+
+            window.VRLog.log(3, 'SCANNING CANDIDATES', {
+              hand: this.data.hand,
+              handPos: this.controllerWorldPos,
+              totalItems: candidates.length
+            });
+
+            candidates.forEach((item, index) => {
+              item.object3D.getWorldPosition(this.itemWorldPos);
+              const dist = this.controllerWorldPos.distanceTo(this.itemWorldPos);
+              const allowedRadius = item.grabRadius || 0.6;
+
+              window.VRLog.log(3, `EVAL ITEM #${index + 1}`, {
+                itemPos: this.itemWorldPos,
+                dist: dist.toFixed(3) + 'm',
+                threshold: allowedRadius.toFixed(3) + 'm'
+              });
+
+              if (dist <= allowedRadius && dist < minDistance) {
+                minDistance = dist;
+                closest = item;
+              }
+            });
+
+            if (closest) {
+              this.grabbedEl = closest;
+              // Reparent directly to controller
+              this.el.object3D.attach(this.grabbedEl.object3D);
+
+              // Turn collider green while held
+              const col = this.grabbedEl.querySelector('.grab-collider');
+              if (col) col.setAttribute('material', 'color: #00ff00; wireframe: true; opacity: 1');
+
+              window.VRLog.log(4, 'OBJECT ATTACHED', {
+                hand: this.data.hand,
+                finalDistance: minDistance.toFixed(3) + 'm',
+                parent: this.grabbedEl.object3D.parent.type
+              });
+            } else {
+              window.VRLog.log(3, 'GRIP MISSED', {
+                hand: this.data.hand,
+                verdict: 'No item in reach distance'
+              });
+            }
+          });
+
+          // Release Grip to Drop
+          this.el.addEventListener('gripup', () => {
+            if (!this.grabbedEl) return;
+
+            const scene = document.querySelector('a-scene');
+            scene.object3D.attach(this.grabbedEl.object3D);
+
+            // Revert collider to red
+            const col = this.grabbedEl.querySelector('.grab-collider');
+            if (col) col.setAttribute('material', 'color: #ff0000; wireframe: true; opacity: 0.85');
+
+            // Sync Three.js transform to DOM attributes for layout persistence
+            const finalPos = this.grabbedEl.object3D.position;
+            const finalRot = this.grabbedEl.object3D.rotation;
+
+            this.grabbedEl.setAttribute('position', `${finalPos.x} ${finalPos.y} ${finalPos.z}`);
+            this.grabbedEl.setAttribute(
+              'rotation',
+              `${THREE.MathUtils.radToDeg(finalRot.x)} ${THREE.MathUtils.radToDeg(finalRot.y)} ${THREE.MathUtils.radToDeg(finalRot.z)}`
+            );
+
+            window.VRLog.log(5, 'OBJECT RELEASED', {
+              hand: this.data.hand,
+              releasedPos: finalPos,
+              releasedRot: {
+                x: THREE.MathUtils.radToDeg(finalRot.x),
+                y: THREE.MathUtils.radToDeg(finalRot.y),
+                z: THREE.MathUtils.radToDeg(finalRot.z)
+              }
+            });
+
+            this.grabbedEl = null;
+          });
+        }
+      });
+
+      // 4. Persistence Engine (Local Storage Save & Restore)
+      const ScenePersistence = {
+        STORAGE_KEY: 'limonera_vr_layout',
+
+        instantiateModel: function (modelSrc, pos, rot, scale) {
+          const scene = document.querySelector('a-scene');
+          const el = document.createElement('a-entity');
+
+          el.classList.add('persisted-instance', 'grabbable-item');
+          el.setAttribute('gltf-model', modelSrc);
+          el.setAttribute('position', pos);
+          el.setAttribute('rotation', rot || '0 0 0');
+          el.setAttribute('scale', scale || '1 1 1');
+          el.setAttribute('make-grabbable', '');
+
+          scene.appendChild(el);
+          return el;
+        },
+
+        save: function () {
+          const instances = document.querySelectorAll('.persisted-instance');
+          const data = [];
+
+          instances.forEach((el) => {
+            const pos = el.getAttribute('position');
+            const rot = el.getAttribute('rotation');
+            const scale = el.getAttribute('scale');
+            const model = el.getAttribute('gltf-model');
+
+            data.push({
+              model: model,
+              position: { x: +pos.x.toFixed(3), y: +pos.y.toFixed(3), z: +pos.z.toFixed(3) },
+              rotation: { x: +rot.x.toFixed(2), y: +rot.y.toFixed(2), z: +rot.z.toFixed(2) },
+              scale: { x: +scale.x.toFixed(3), y: +scale.y.toFixed(3), z: +scale.z.toFixed(3) }
+            });
+          });
+
+          localStorage.setItem(this.STORAGE_KEY, JSON.stringify(data));
+          window.VRLog.log(5, 'LAYOUT PERSISTED', { count: data.length });
+          return data.length;
+        },
+
+        load: function () {
+          const raw = localStorage.getItem(this.STORAGE_KEY);
+          if (!raw) return;
+
+          try {
+            const data = JSON.parse(raw);
+            data.forEach((item) => {
+              this.instantiateModel(item.model, item.position, item.rotation, item.scale);
+            });
+            window.VRLog.log(1, 'LAYOUT RESTORED', { count: data.length });
+          } catch (e) {
+            window.VRLog.log(1, 'RESTORE ERROR', { error: e.message });
+          }
+        },
+
+        clear: function () {
+          const instances = document.querySelectorAll('.persisted-instance');
+          instances.forEach((el) => el.parentNode.removeChild(el));
+          localStorage.removeItem(this.STORAGE_KEY);
+          window.VRLog.log(5, 'LAYOUT CLEARED', {});
+        }
+      };
+
+      AFRAME.registerComponent('scene-persistence-manager', {
+        init: function () {
+          this.el.addEventListener('loaded', () => ScenePersistence.load());
+        }
+      });
+
+      // 5. Spawner: Instantiates models exactly 20 cm in front of the LEFT hand
+      AFRAME.registerComponent('model-spawner', {
+        schema: {
+          model: { type: 'string' },
+          scale: { type: 'string', default: '1 1 1' }
+        },
+        init: function () {
+          const el = this.el;
+
+          const spawn = () => {
+            const leftHand = document.querySelector('#left-con');
+            const cameraEl = document.querySelector('[camera]');
+            const spawnPos = new THREE.Vector3();
+            let handPos = new THREE.Vector3();
+
+            if (leftHand && leftHand.object3D) {
+              leftHand.object3D.updateMatrixWorld(true);
+              leftHand.object3D.getWorldPosition(handPos);
+
+              if (cameraEl && cameraEl.object3D) {
+                cameraEl.object3D.updateMatrixWorld(true);
+                const camPos = new THREE.Vector3();
+                cameraEl.object3D.getWorldPosition(camPos);
+
+                // Direction vector from left hand pointing toward the user's headset
+                const toUser = new THREE.Vector3().subVectors(camPos, handPos);
+                toUser.y += 0.12; // slight upward tilt above the wrist
+                toUser.normalize();
+
+                // Exactly 20 cm (0.20m) from left hand into the user's direct line of sight
+                spawnPos.copy(handPos).addScaledVector(toUser, 0.20);
+              } else {
+                const worldQuat = new THREE.Quaternion();
+                leftHand.object3D.getWorldQuaternion(worldQuat);
+                const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(worldQuat);
+                spawnPos.copy(handPos).addScaledVector(forward, 0.20);
+              }
+            } else {
+              // Safe fallback if controller is not yet tracked
+              const rig = document.querySelector('#rig');
+              if (rig) {
+                rig.object3D.getWorldPosition(spawnPos);
+                spawnPos.y += 1.2;
+                spawnPos.z -= 0.5;
+              }
+            }
+
+            window.VRLog.log(1, 'SPAWN INITIATED', {
+              model: this.data.model,
+              handPos: handPos,
+              spawnPos: spawnPos,
+              distanceFromLeftHand: (handPos.lengthSq() > 0 ? handPos.distanceTo(spawnPos).toFixed(3) : 'fallback') + 'm'
+            });
+
+            ScenePersistence.instantiateModel(
+              this.data.model,
+              `${spawnPos.x} ${spawnPos.y} ${spawnPos.z}`,
+              '0 0 0',
+              this.data.scale
+            );
+          };
+
+          el.addEventListener('click', spawn);
+        }
+      });
+
+      // 6. Right Thumbstick Smooth Turning
+      AFRAME.registerComponent('thumbstick-turn', {
+        schema: {
+          rig: { type: 'selector', default: '#rig' },
+          speed: { type: 'number', default: 2.0 }
+        },
+        init: function () {
+          this.thumbstickX = 0;
+          this.el.addEventListener('axismove', (evt) => {
+            this.thumbstickX = evt.detail.axis[2] !== undefined ? evt.detail.axis[2] : evt.detail.axis[0];
+          });
+        },
+        tick: function () {
+          if (Math.abs(this.thumbstickX) > 0.15) {
+            const rig = this.data.rig;
+            const rotation = rig.getAttribute('rotation');
+            rotation.y -= this.thumbstickX * this.data.speed;
+            rig.setAttribute('rotation', rotation);
+          }
+        }
+      });
+
+      // 7. Wrist Glance Toggle (shows menu only when wrist is turned upward toward face)
+      AFRAME.registerComponent('wrist-glance-toggle', {
+        schema: { threshold: { type: 'number', default: 0.1 } },
+        init: function () {
+          this.worldUp = new THREE.Vector3(0, 1, 0);
+          this.localUp = new THREE.Vector3();
+        },
+        tick: function () {
+          this.el.object3D.getWorldDirection(this.localUp);
+          const shouldShow = this.localUp.dot(this.worldUp) > this.data.threshold;
+          if (this.el.getAttribute('visible') !== shouldShow) {
+            this.el.setAttribute('visible', shouldShow);
+          }
+        }
+      });
+
+      // 8. Wrist Menu Action Buttons
+      AFRAME.registerComponent('save-layout-button', {
+        init: function () {
+          this.el.addEventListener('click', () => {
+            const count = ScenePersistence.save();
+            const statusText = document.querySelector('#menu-status');
+            if (statusText) {
+              statusText.setAttribute('value', `Saved ${count} items!`);
+              setTimeout(() => statusText.setAttribute('value', 'ASSETS'), 2000);
+            }
+          });
+        }
+      });
+
+      AFRAME.registerComponent('clear-layout-button', {
+        init: function () {
+          this.el.addEventListener('click', () => {
+            ScenePersistence.clear();
+            const statusText = document.querySelector('#menu-status');
+            if (statusText) {
+              statusText.setAttribute('value', 'Cleared');
+              setTimeout(() => statusText.setAttribute('value', 'ASSETS'), 2000);
+            }
+          });
+        }
+      });
+
+      AFRAME.registerComponent('debug-toggle-button', {
+        init: function () {
+          this.el.addEventListener('click', () => {
+            window.toggleDebug();
+          });
+        }
+      });
+    </script>
+  </head>
+  <body>
+    <!-- 2D Desktop Quick-Access Debug Button -->
+    <div style="position: fixed; top: 16px; left: 16px; z-index: 99999; pointer-events: auto;">
+      <button id="desktop-debug-btn" onclick="window.toggleDebug()" style="background: #6366f1; color: #ffffff; border: none; padding: 10px 16px; font-family: sans-serif; font-size: 13px; font-weight: 600; border-radius: 8px; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.35);">
+        Hide Bounds & Launch Inspector
+      </button>
+    </div>
+
+    <a-scene scene-persistence-manager 
+             renderer="antialias: true; colorManagement: true;">
+      <a-entity environment="preset: default"></a-entity>
+
+      <!-- Asset Manifest with 10s timeout to prevent loading lockups -->
+      <a-assets timeout="10000">
+        <a-asset-item id="building" src="building.glb"></a-asset-item>
+        <a-asset-item id="plant-glb" src="elephantplant.glb"></a-asset-item>
+        <img id="thumb-plant" src="thumb_elephantplant.png">
+      </a-assets>
+
+      <!-- Architectural Environment Model -->
+      <a-entity id="building-model" gltf-model="#building" position="-1 -0.7 0"></a-entity>
+
+      <!-- Player Rig with Left-Stick Smooth Movement -->
+      <a-entity id="rig" 
+                movement-controls="controls: gamepad, keyboard; speed: 0.15; fly: false" 
+                position="0 0 7">
+        
+        <a-entity camera position="0 1.6 0" look-controls></a-entity>
+
+        <!-- Left Controller: Grabber + Cyan Hand Indicator + Wrist Menu -->
+        <a-entity id="left-con"
+                  oculus-touch-controls="hand: left; model: true"
+                  vr-grabber="hand: LEFT">
+          
+          <!-- Visual Hand Grab Indicator (Cyan sphere) -->
+          <a-sphere class="hand-indicator" radius="0.1" material="color: #00ffff; opacity: 0.35; wireframe: true"></a-sphere>
+
+          <!-- Wrist-Mounted Catalog Palette -->
+          <a-entity id="wrist-menu"
+                    position="0.08 0.06 -0.05" 
+                    rotation="-50 90 -90" 
+                    scale="0.4 0.4 0.4"
+                    wrist-glance-toggle>
+
+            <!-- Menu Slate -->
+            <a-plane width="0.8" height="0.75" color="#18181b" material="opacity: 0.95; transparent: true"></a-plane>
+            <a-text id="menu-status" value="ASSETS" position="0 0.3 0.01" align="center" width="1.4" color="#a1a1aa"></a-text>
+
+            <!-- Spawner Item: Plant -->
+            <a-entity position="0 0.12 0.02">
+              <a-plane class="clickable" width="0.26" height="0.26" src="#thumb-plant" model-spawner="model: #plant-glb; scale: 0.8 0.8 0.8"></a-plane>
+              <a-text value="Plant" position="0 -0.15 0" align="center" width="0.9" color="#fafafa"></a-text>
+            </a-entity>
+
+            <!-- Action: SAVE -->
+            <a-entity position="-0.18 -0.07 0.02">
+              <a-plane class="clickable" save-layout-button width="0.3" height="0.09" color="#10b981"></a-plane>
+              <a-text value="SAVE" position="0 0 0.01" align="center" width="1.2" clor="#ffffff"></a-text>
+            </a-entity>
+
+            <!-- Action: CLEAR -->
+            <a-entity position="0.18 -0.07 0.02">
+              <a-plane class="clickable" clear-layout-button width="0.3" height="0.09" color="#ef4444"></a-plane>
+              <a-text value="CLEAR" position="0 0 0.01" align="center" width="1.2" color="#ffffff"></a-text>
+            </a-entity>
+
+            <!-- Action: DEBUG (QUIT BOUNDS & LAUNCH INSPECTOR) -->
+            <a-entity position="0 -0.21 0.02">
+              <a-plane class="clickable" debug-toggle-button width="0.66" height="0.11" color="#6366f1"></a-plane>
+              <a-text id="debug-btn-text" value="HIDE BOUNDS & INSP" position="0 0 0.01" align="center" width="1.1" color="#ffffff"></a-text>
+            </a-entity>
+          </a-entity>
+        </a-entity>
+
+        <!-- Right Controller: Grabber + Cyan Hand Indicator + Laser Pointer + Thumbstick Turning -->
+        <a-entity id="right-con"
+                  oculus-touch-controls="hand: right; model: true"
+                  thumbstick-turn="rig: #rig; speed: 2.0"
+                  laser-controls="hand: right"
+                  raycaster="objects: .clickable; far: 3"
+                  vr-grabber="hand: RIGHT">
+          
+          <!-- Visual Hand Grab Indicator (Cyan sphere) -->
+          <a-sphere class="hand-indicator" radius="0.1" material="color: #00ffff; opacity: 0.35; wireframe: true"></a-sphere>
+        </a-entity>
+      </a-entity>
+    </a-scene>
+  </body>
+</html>

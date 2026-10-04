@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Limonera VR Tour - Wrist Palette with Save/Load</title>
+    <script src="https://aframe.io/releases/1.8.0/aframe.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/c-frame/aframe-extras@7.5.4/dist/aframe-extras.min.js"></script>
+    <script src="https://unpkg.com/aframe-environment-component@1.5.x/dist/aframe-environment-component.min.js"></script>
+    <!-- <script src="https://unpkg.com/super-hands@^3.0.4/dist/super-hands.min.js"></script> -->
+
+    <script>
+      // Component to ensure GLTF models can be detected by sphere-collider & super-hands
+      AFRAME.registerComponent('make-grabbable', {
+        init: function () {
+          const el = this.el;
+
+          // When GLTF finishes loading, compute its bounding box and add collision geometry
+          el.addEventListener('model-loaded', () => {
+            const obj = el.getObject3D('mesh');
+            if (!obj) return;
+
+            // Compute actual bounding box of the loaded GLB
+            const bbox = new THREE.Box3().setFromObject(obj);
+            const size = new THREE.Vector3();
+            bbox.getSize(size);
+            const center = new THREE.Vector3();
+            bbox.getCenter(center);
+
+            // Add an invisible box wrapper that sphere-collider can easily detect
+            let collider = el.querySelector('.grab-collider');
+            if (!collider) {
+              collider = document.createElement('a-box');
+              collider.classList.add('grab-collider');
+              // Slightly enlarge collision volume for easier grabbing
+              collider.setAttribute('width', Math.max(size.x * 1.1, 0.3));
+              collider.setAttribute('height', Math.max(size.y * 1.1, 0.3));
+              collider.setAttribute('depth', Math.max(size.z * 1.1, 0.3));
+              collider.setAttribute('material', 'visible: false');
+              el.appendChild(collider);
+            }
+          });
+        }
+      });
+
+      // Persistence Engine
+      const ScenePersistence = {
+        STORAGE_KEY: 'limonera_vr_layout',
+
+        instantiateModel: function (modelSrc, pos, rot, scale) {
+          const scene = document.querySelector('a-scene');
+          const el = document.createElement('a-entity');
+          
+          el.classList.add('persisted-instance', 'grabbable-item');
+          el.setAttribute('gltf-model', modelSrc);
+          el.setAttribute('position', pos);
+          el.setAttribute('rotation', rot);
+          el.setAttribute('scale', scale);
+
+          // Interaction attributes
+          el.setAttribute('hoverable', '');
+          el.setAttribute('grabbable', '');
+          el.setAttribute('stretchable', '');
+          el.setAttribute('make-grabbable', '');
+
+          scene.appendChild(el);
+          return el;
+        },
+
+        save: function () {
+          const instances = document.querySelectorAll('.persisted-instance');
+          const data = [];
+
+          instances.forEach((el) => {
+            const pos = el.getAttribute('position');
+            const rot = el.getAttribute('rotation');
+            const scale = el.getAttribute('scale');
+            const model = el.getAttribute('gltf-model');
+
+            data.push({
+              model: model,
+              position: { x: +pos.x.toFixed(3), y: +pos.y.toFixed(3), z: +pos.z.toFixed(3) },
+              rotation: { x: +rot.x.toFixed(2), y: +rot.y.toFixed(2), z: +rot.z.toFixed(2) },
+              scale: { x: +scale.x.toFixed(3), y: +scale.y.toFixed(3), z: +scale.z.toFixed(3) }
+            });
+          });
+
+          localStorage.setItem(this.STORAGE_KEY, JSON.stringify(data));
+          return data.length;
+        },
+
+        load: function () {
+          const raw = localStorage.getItem(this.STORAGE_KEY);
+          if (!raw) return;
+
+          try {
+            const data = JSON.parse(raw);
+            data.forEach((item) => {
+              this.instantiateModel(item.model, item.position, item.rotation, item.scale);
+            });
+          } catch (e) {
+            console.error('Error loading saved layout:', e);
+          }
+        },
+
+        clear: function () {
+          const instances = document.querySelectorAll('.persisted-instance');
+          instances.forEach((el) => el.parentNode.removeChild(el));
+          localStorage.removeItem(this.STORAGE_KEY);
+        }
+      };
+
+      AFRAME.registerComponent('scene-persistence-manager', {
+        init: function () {
+          this.el.addEventListener('loaded', () => {
+            ScenePersistence.load();
+          });
+        }
+      });
+
+      AFRAME.registerComponent('save-layout-button', {
+        init: function () {
+          const el = this.el;
+          const statusText = document.querySelector('#menu-status');
+
+          const triggerSave = () => {
+            const count = ScenePersistence.save();
+            if (statusText) {
+              statusText.setAttribute('value', `Saved ${count} items!`);
+              setTimeout(() => statusText.setAttribute('value', 'ASSETS'), 2000);
+            }
+          };
+
+          el.addEventListener('click', triggerSave);
+          el.addEventListener('grab-start', triggerSave);
+        }
+      });
+
+      AFRAME.registerComponent('clear-layout-button', {
+        init: function () {
+          const el = this.el;
+          const statusText = document.querySelector('#menu-status');
+
+          const triggerClear = () => {
+            ScenePersistence.clear();
+            if (statusText) {
+              statusText.setAttribute('value', 'Layout cleared');
+              setTimeout(() => statusText.setAttribute('value', 'ASSETS'), 2000);
+            }
+          };
+
+          el.addEventListener('click', triggerClear);
+          el.addEventListener('grab-start', triggerClear);
+        }
+      });
+
+      AFRAME.registerComponent('model-spawner', {
+        schema: {
+          model: { type: 'string' },
+          scale: { type: 'string', default: '1 1 1' }
+        },
+        init: function () {
+          const el = this.el;
+
+          const spawn = () => {
+            const menuParent = el.closest('#wrist-menu');
+            if (menuParent && !menuParent.getAttribute('visible')) return;
+
+            const rightHand = document.querySelector('#right-con');
+            const spawnPos = new THREE.Vector3();
+
+            if (rightHand && rightHand.object3D) {
+              rightHand.object3D.getWorldPosition(spawnPos);
+              const dir = new THREE.Vector3(0, 0, -1).applyQuaternion(rightHand.object3D.quaternion);
+              spawnPos.addScaledVector(dir, 0.4);
+            } else {
+              el.object3D.getWorldPosition(spawnPos);
+              spawnPos.y += 0.2;
+            }
+
+            ScenePersistence.instantiateModel(
+              this.data.model,
+              `${spawnPos.x} ${spawnPos.y} ${spawnPos.z}`,
+              '0 0 0',
+              this.data.scale
+            );
+          };
+
+          el.addEventListener('click', spawn);
+          el.addEventListener('grab-start', spawn);
+        }
+      });
+
+      AFRAME.registerComponent('thumbstick-turn', {
+        schema: {
+          rig: { type: 'selector', default: '#rig' },
+          speed: { type: 'number', default: 2.0 }
+        },
+        init: function () {
+          this.thumbstickX = 0;
+          this.el.addEventListener('axismove', (evt) => {
+            this.thumbstickX = evt.detail.axis[2] !== undefined ? evt.detail.axis[2] : evt.detail.axis[0];
+          });
+        },
+        tick: function () {
+          if (Math.abs(this.thumbstickX) > 0.15) {
+            const rig = this.data.rig;
+            const rotation = rig.getAttribute('rotation');
+            rotation.y -= this.thumbstickX * this.data.speed;
+            rig.setAttribute('rotation', rotation);
+          }
+        }
+      });
+
+      AFRAME.registerComponent('wrist-glance-toggle', {
+        schema: { threshold: { type: 'number', default: 0.2 } },
+        init: function () {
+          this.worldUp = new THREE.Vector3(0, 1, 0);
+          this.localUp = new THREE.Vector3();
+        },
+        tick: function () {
+          this.el.object3D.getWorldDirection(this.localUp);
+          const shouldShow = this.localUp.dot(this.worldUp) > this.data.threshold;
+          if (this.el.getAttribute('visible') !== shouldShow) {
+            this.el.setAttribute('visible', shouldShow);
+          }
+        }
+      });
+    </script>
+  </head>
+  <body>
+    <a-scene scene-persistence-manager renderer="antialias: true; colorManagement: true;">
+      <a-entity environment="preset: default"></a-entity>
+
+      <a-assets>
+        <a-asset-item id="building" src="building.glb"></a-asset-item>
+        <a-asset-item id="plant-glb" src="elephantplant.glb"></a-asset-item>
+        <img id="thumb-plant" src="thumb_elephantplant.png">
+      </a-assets>
+
+      <a-entity id="building-model" gltf-model="#building" position="-1 -0.7 0"></a-entity>
+
+      <!-- Player Rig -->
+      <a-entity id="rig" 
+                movement-controls="controls: gamepad, keyboard; speed: 0.15; fly: false" 
+                position="0 0 7">
+        
+        <a-entity camera position="0 1.6 0" look-controls></a-entity>
+
+        <!-- Left Controller -->
+        <a-entity id="left-con"
+                  oculus-touch-controls="hand: left; model: true"
+                  sphere-collider="objects: .grabbable-item, .grab-collider, [hoverable], .clickable; radius: 0.15"
+                  super-hands="grabStartButtons: gripdown, triggerdown; grabEndButtons: gripup, triggerup">
+
+          <!-- Wrist Palette -->
+          <a-entity id="wrist-menu"
+                    position="0.08 0.06 -0.05" 
+                    rotation="-50 90 -90" 
+                    scale="0.4 0.4 0.4"
+                    wrist-glance-toggle>
+
+            <a-plane width="0.75" height="0.6" color="#18181b" material="opacity: 0.95; transparent: true"></a-plane>
+            <a-text id="menu-status" value="ASSETS" position="0 0.23 0.01" align="center" width="1.4" color="#a1a1aa"></a-text>
+
+            <a-entity position="-0.2 0.06 0.02">
+              <a-plane class="clickable" width="0.24" height="0.24" src="#thumb-chair" hoverable model-spawner="model: #chair-glb; scale: 1 1 1"></a-plane>
+              <a-text value="Chair" position="0 -0.14 0" align="center" width="0.9" color="#fafafa"></a-text>
+            </a-entity>
+
+            <a-entity position="0.2 0.06 0.02">
+              <a-plane class="clickable" width="0.24" height="0.24" src="#thumb-plant" hoverable model-spawner="model: #plant-glb; scale: 0.8 0.8 0.8"></a-plane>
+              <a-text value="Plant" position="0 -0.14 0" align="center" width="0.9" color="#fafafa"></a-text>
+            </a-entity>
+
+            <a-entity position="-0.16 -0.2 0.02">
+              <a-plane class="clickable" save-layout-button width="0.28" height="0.09" color="#10b981" hoverable></a-plane>
+              <a-text value="SAVE" position="0 0 0.01" align="center" width="1.2" color="#ffffff"></a-text>
+            </a-entity>
+
+            <a-entity position="0.16 -0.2 0.02">
+              <a-plane class="clickable" clear-layout-button width="0.28" height="0.09" color="#ef4444" hoverable></a-plane>
+              <a-text value="CLEAR" position="0 0 0.01" align="center" width="1.2" color="#ffffff"></a-text>
+            </a-entity>
+          </a-entity>
+        </a-entity>
+
+        <!-- Right Controller -->
+        <a-entity id="right-con"
+                  oculus-touch-controls="hand: right; model: true"
+                  thumbstick-turn="rig: #rig; speed: 2.0"
+                  laser-controls="hand: right"
+                  raycaster="objects: .clickable; far: 2"
+                  sphere-collider="objects: .grabbable-item, .grab-collider, [hoverable], .clickable; radius: 0.15"
+                  super-hands="grabStartButtons: gripdown, triggerdown; grabEndButtons: gripup, triggerup">
+        </a-entity>
+      </a-entity>
+    </a-scene>
+  </body>
+</html>

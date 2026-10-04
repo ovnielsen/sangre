@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Limonera VR Tour</title>
+    <script src="https://aframe.io/releases/1.8.0/aframe.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/c-frame/aframe-extras@7.5.4/dist/aframe-extras.min.js"></script>
+    <script src="https://unpkg.com/aframe-environment-component@1.5.x/dist/aframe-environment-component.min.js"></script>
+
+    <script>
+      // Component to handle smooth turning with the right Oculus thumbstick
+      AFRAME.registerComponent('thumbstick-turn', {
+        schema: {
+          rig: { type: 'selector', default: '#rig' },
+          speed: { type: 'number', default: 2.0 } // Turn speed in degrees per frame
+        },
+        init: function () {
+          this.thumbstickX = 0;
+          this.el.addEventListener('axismove', (evt) => {
+            // Oculus Touch axes: [0] = X axis (horizontal), [1] = Y axis (vertical)
+            this.thumbstickX = evt.detail.axis[2] !== undefined ? evt.detail.axis[2] : evt.detail.axis[0];
+          });
+        },
+        tick: function () {
+          if (Math.abs(this.thumbstickX) > 0.15) {
+            const rig = this.data.rig;
+            const rotation = rig.getAttribute('rotation');
+            rotation.y -= this.thumbstickX * this.data.speed;
+            rig.setAttribute('rotation', rotation);
+          }
+        }
+      });
+    </script>
+  </head>
+  <body>
+    <a-scene renderer="antialias: true; colorManagement: true;">
+      <a-entity environment></a-entity>
+
+      <a-assets>
+        <a-asset-item id="building" src="building.glb"></a-asset-item>
+      </a-assets>
+
+      <!-- Architecture Model -->
+      <a-entity id="building-model" gltf-model="#building" position="-1 -0.7 0"></a-entity>
+
+      <!-- Player Rig -->
+      <!-- movement-controls automatically reads the left thumbstick for translation -->
+      <a-entity id="rig" 
+                movement-controls="controls: gamepad, keyboard; speed: 0.15; fly: false" 
+                position="0 0 8">
+        
+        <a-entity camera position="0 1.6 0" look-controls></a-entity>
+
+        <!-- Left Controller: Moves forward/backward & strafes -->
+        <a-entity id="left-con" oculus-touch-controls="hand: left"></a-entity>
+
+        <!-- Right Controller: Turns camera view left/right -->
+        <a-entity id="right-con" oculus-touch-controls="hand: right" thumbstick-turn="rig: #rig; speed: 2.0"></a-entity>
+      </a-entity>
+    </a-scene>
+  </body>
+</html>

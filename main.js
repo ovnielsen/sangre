@@ -1,19 +1,44 @@
+// main.js
 import { Clerk } from '@clerk/clerk-js';
-import { ui } from '@clerk/ui'
+import {ui} from '@clerk/ui';
 
-// Replace with your actual Clerk Publishable Key or inject via Vite env (VITE_CLERK_PUBLISHABLE_KEY)
-const clerkPublishableKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
-const clerk = new Clerk(clerkPublishableKey);
+const clerk = new Clerk(import.meta.env.VITE_CLERK_PUBLISHABLE_KEY);
 
 async function init() {
+  // 1. Let Clerk complete its handshake and process ?__clerk_* URL parameters
   await clerk.load({ui});
 
-  const isProtectedPage = window.location.pathname.startsWith('/vr');
-  const isLoginPage = window.location.pathname === '/' || window.location.pathname.endsWith('index.html');
+  const url = new URL(window.location.href);
+  const isProtectedPage = url.pathname.includes('vr');
+  const isLoginPage = url.pathname === '/' || url.pathname.endsWith('index.html');
 
+  // Clean Clerk's temporary handshake query params from the address bar without reloading
+  if (url.searchParams.has('__clerk_db_jwt') || url.searchParams.has('__clerk_synced')) {
+    url.searchParams.delete('__clerk_db_jwt');
+    url.searchParams.delete('__clerk_synced');
+    window.history.replaceState({}, '', url.pathname + url.search);
+  }
+
+  // 2. Loop prevention guard (stops crashes if cookies are blocked)
+  const redirectCount = parseInt(sessionStorage.getItem('auth_redirect_count') || '0', 10);
+  if (redirectCount > 3) {
+    sessionStorage.removeItem('auth_redirect_count');
+    document.body.innerHTML = `
+      <div style="font-family: sans-serif; padding: 2rem; max-width: 500px; margin: auto;">
+        <h2>Session synchronization failed</h2>
+        <p>Your browser blocked Clerk's cookies on this domain or the preview iframe is active.</p>
+        <p><a href="/" onclick="sessionStorage.clear()">Retry on root page</a></p>
+      </div>
+    `;
+    return;
+  }
+
+  // 3. Routing logic
   if (clerk.user) {
-    // User is logged in
+    sessionStorage.removeItem('auth_redirect_count');
+
     if (isLoginPage) {
+      sessionStorage.setItem('auth_redirect_count', String(redirectCount + 1));
       window.location.replace('/vr.html');
       return;
     }
@@ -27,8 +52,8 @@ async function init() {
       clerk.mountUserButton(userBtn);
     }
   } else {
-    // User is NOT logged in
     if (isProtectedPage) {
+      sessionStorage.setItem('auth_redirect_count', String(redirectCount + 1));
       window.location.replace('/');
       return;
     }
@@ -48,4 +73,3 @@ async function init() {
 }
 
 init();
-

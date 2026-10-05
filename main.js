@@ -44,7 +44,7 @@ async function init() {
     }
 
     // Mount user profile/logout controls on protected page
-    document.getElementById('app').innerHTML = `
+    document.getElementById('nav').innerHTML = `
         <div id="user-button"></div>
       `
     const userBtn = document.getElementById('user-button');

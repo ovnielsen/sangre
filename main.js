@@ -1,15 +1,28 @@
 // main.js
 import { Clerk } from '@clerk/clerk-js';
-import {ui} from '@clerk/ui';
+import { ui } from '@clerk/ui';
 
-const clerk = new Clerk(import.meta.env.VITE_CLERK_PUBLISHABLE_KEY);
+const DEV_FALLBACK_KEY = 'pk_test_Y29tcGxldGUta29kaWFrLTY5MDEuY2xlcmsuYWNjb3VudHMuZGV2JA';
+const envKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
+const isLocalhost =
+  window.location.hostname === 'localhost' ||
+  window.location.hostname === '127.0.0.1' ||
+  window.location.hostname.startsWith('192.168.');
+
+// Prevent Clerk "origin_invalid" on localhost if .env (pk_live_) was loaded instead of .env.dev (pk_test_)
+const publishableKey =
+  isLocalhost && envKey?.startsWith('pk_live_') ? DEV_FALLBACK_KEY : envKey;
+
+const clerk = new Clerk(publishableKey);
 
 async function init() {
   // 1. Let Clerk complete its handshake and process ?__clerk_* URL parameters
-  await clerk.load({ui});
+  await clerk.load({ ui });
 
   const url = new URL(window.location.href);
-  const isProtectedPage = url.pathname.includes('vr');
+  const isVrPage = url.pathname.includes('vr');
+  const isPlannerPage = url.pathname.includes('planner');
+  const isProtectedPage = isVrPage || isPlannerPage;
   const isLoginPage = url.pathname === '/' || url.pathname.endsWith('index.html');
 
   // Clean Clerk's temporary handshake query params from the address bar without reloading
@@ -43,13 +56,33 @@ async function init() {
       return;
     }
 
-    // Mount user profile/logout controls on protected page
-    document.getElementById('app').innerHTML = `
-        <div id="user-button"></div>
-      `
-    const userBtn = document.getElementById('user-button');
-    if (userBtn) {
-      clerk.mountUserButton(userBtn);
+    // Signal to the React Three Fiber planner page that Clerk authentication succeeded and pass Clerk user identity
+    window.__CLERK_USER__ = {
+      id: clerk.user.id,
+      displayName:
+        clerk.user.fullName ||
+        clerk.user.username ||
+        clerk.user.primaryEmailAddress?.emailAddress ||
+        clerk.user.id,
+    };
+    window.__CLERK_AUTHENTICATED__ = true;
+    window.dispatchEvent(new CustomEvent('clerk:authenticated'));
+
+    // Mount navigation switcher + Clerk user profile/logout controls on protected pages
+    const navEl = document.getElementById('nav');
+    if (navEl) {
+      const switchHref = isPlannerPage ? '/vr.html' : '/planner.html';
+      const switchLabel = isPlannerPage ? 'VR TOUR' : '3D PLANT PLANNER';
+      navEl.innerHTML = `
+        <div id="top-nav-bar">
+          <a href="${switchHref}" class="nav-mode-link">${switchLabel}</a>
+          <div id="user-button"></div>
+        </div>
+      `;
+      const userBtn = document.getElementById('user-button');
+      if (userBtn) {
+        clerk.mountUserButton(userBtn);
+      }
     }
   } else {
     if (isProtectedPage) {
@@ -59,15 +92,18 @@ async function init() {
     }
 
     // Mount sign-in component on login page
-      document.getElementById('app').innerHTML = `
+    const appEl = document.getElementById('app');
+    if (appEl) {
+      appEl.innerHTML = `
         <div id="waitlist"></div>
-      `
-    const waitlistDiv = document.getElementById('waitlist');
-    if (waitlistDiv) {
-      clerk.mountWaitlist(waitlistDiv, {
-        afterSignInUrl: '/vr.html',
-        afterSignUpUrl: '/vr.html',
-      });
+      `;
+      const waitlistDiv = document.getElementById('waitlist');
+      if (waitlistDiv) {
+        clerk.mountWaitlist(waitlistDiv, {
+          afterSignInUrl: '/vr.html',
+          afterSignUpUrl: '/vr.html',
+        });
+      }
     }
   }
 }

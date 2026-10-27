@@ -59,9 +59,18 @@ async function isClerkAuthenticated(request, env) {
   }
 }
 
+function isProtectedHost(url) {
+  return (
+    url.hostname === 'savia.sangreylirios.space' ||
+    url.hostname.startsWith('savia.') ||
+    url.searchParams.get('subdomain') === 'savia'
+  );
+}
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
+    const onProtectedSubdomain = isProtectedHost(url);
 
     if (url.pathname === '/api/asset-key') {
       return new Response('Forbidden: Static key endpoint is disabled.', { status: 403 });
@@ -69,6 +78,9 @@ export default {
 
     // Route guard for protected pages (/vr and /planner)
     if (url.pathname.startsWith('/vr') || url.pathname.startsWith('/planner')) {
+      if (!onProtectedSubdomain) {
+        return Response.redirect(`${url.origin}/`, 302);
+      }
       const authed = await isClerkAuthenticated(request, env);
       if (!authed) {
         return Response.redirect(`${url.origin}/`, 302);
@@ -77,6 +89,9 @@ export default {
 
     // Ephemeral ECDH P-256 handshake for protected 3D asset packs
     if (url.pathname.startsWith('/api/asset-pack/')) {
+      if (!onProtectedSubdomain) {
+        return new Response('Forbidden: Protected subdomain required.', { status: 403 });
+      }
       const authed = await isClerkAuthenticated(request, env);
       if (!authed) {
         return new Response('Unauthorized', { status: 401 });

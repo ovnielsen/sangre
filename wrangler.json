@@ -55,6 +55,17 @@
 			"custom_domain": true,
 			"enabled": true,
 			"previews_enabled": false
+		},
+		{
+			"pattern": "savia.sangreylirios.space/*",
+			"zone_name": "sangreylirios.space"
+		},
+		{
+			"pattern": "savia.sangreylirios.space",
+			"zone_name": "sangreylirios.space",
+			"custom_domain": true,
+			"enabled": true,
+			"previews_enabled": false
 		}
 	]
 }

@@ -1,0 +1,608 @@
+body {
+  margin: 0;
+  height: 100dvh;
+  overflow: hidden;
+  user-select: none;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+#root {
+  height: 100%;
+  position: relative;
+}
+
+#fps-crosshair {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  width: 24px;
+  height: 24px;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  z-index: 10;
+  --crosshair-color: #00ffcc;
+  --crosshair-gap: 4px;
+  transition: transform 0.12s ease, opacity 0.12s ease;
+}
+
+#fps-crosshair[data-mode="hover"],
+#fps-crosshair[data-mode="hover-pinned"] {
+  --crosshair-color: #39ff14;
+  transform: translate(-50%, -50%) scale(1.2);
+}
+
+#fps-crosshair[data-mode="grabbed"] {
+  --crosshair-color: #ffb700;
+  transform: translate(-50%, -50%) scale(0.9);
+}
+
+#fps-crosshair[data-mode="wall-snap"] {
+  --crosshair-color: #38bdf8;
+  transform: translate(-50%, -50%) scale(1.15) rotate(45deg);
+}
+
+#fps-crosshair[data-mode="free"] {
+  opacity: 0.25;
+}
+
+.crosshair-line {
+  position: absolute;
+  background-color: var(--crosshair-color);
+  box-shadow: 0 0 2px rgba(0, 0, 0, 0.85);
+}
+
+.crosshair-top {
+  left: 50%;
+  top: 0;
+  width: 2px;
+  height: 7px;
+  transform: translateX(-50%);
+}
+
+.crosshair-bottom {
+  left: 50%;
+  bottom: 0;
+  width: 2px;
+  height: 7px;
+  transform: translateX(-50%);
+}
+
+.crosshair-left {
+  top: 50%;
+  left: 0;
+  width: 7px;
+  height: 2px;
+  transform: translateY(-50%);
+}
+
+.crosshair-right {
+  top: 50%;
+  right: 0;
+  width: 7px;
+  height: 2px;
+  transform: translateY(-50%);
+}
+
+.crosshair-dot {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 2px;
+  height: 2px;
+  background-color: var(--crosshair-color);
+  transform: translate(-50%, -50%);
+  box-shadow: 0 0 2px rgba(0, 0, 0, 0.85);
+}
+
+#fps-prompt {
+  position: fixed;
+  top: calc(50% + 26px);
+  left: 50%;
+  transform: translateX(-50%);
+  pointer-events: none;
+  z-index: 10;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: #ffffff;
+  background: rgba(15, 23, 42, 0.72);
+  padding: 5px 12px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  white-space: nowrap;
+  backdrop-filter: blur(4px);
+}
+
+#fps-prompt:empty {
+  display: none;
+}
+
+/* Counter-Strike Bottom-Left Tactical HUD Bar */
+.cs-hud-bar {
+  position: fixed;
+  bottom: 20px;
+  left: 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  z-index: 15;
+}
+
+.cs-hud-buy-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(24, 32, 22, 0.86);
+  color: #ffb700;
+  border: 1px solid #7f8f66;
+  padding: 8px 14px;
+  font-family: Tahoma, Verdana, sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 4px 12px rgba(0, 0, 0, 0.45);
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.cs-hud-buy-btn:hover {
+  background: rgba(44, 58, 40, 0.95);
+  border-color: #ffb700;
+}
+
+.cs-hud-key {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  background: #ffb700;
+  color: #141a12;
+  font-weight: 800;
+  font-size: 11px;
+}
+
+.cs-hud-counter {
+  background: rgba(24, 32, 22, 0.86);
+  color: #c5d1b3;
+  border: 1px solid #5a6949;
+  padding: 8px 12px;
+  font-family: Tahoma, Verdana, sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+/* Classic Counter-Strike 1.6 / Source VGUI Buy Menu Overlay */
+.cs-buy-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background: radial-gradient(circle at center, rgba(10, 14, 10, 0.55), rgba(5, 8, 5, 0.82));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(3px);
+}
+
+.cs-buy-window {
+  width: min(880px, 94vw);
+  background: rgba(28, 36, 26, 0.94);
+  border: 2px solid #6b7b57;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 183, 0, 0.18),
+    0 24px 60px rgba(0, 0, 0, 0.75);
+  color: #e2ebd5;
+  font-family: Tahoma, Verdana, sans-serif;
+}
+
+.cs-buy-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 18px;
+  background: rgba(18, 24, 16, 0.95);
+  border-bottom: 1px solid #6b7b57;
+}
+
+.cs-buy-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #ffb700;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+}
+
+.cs-buy-icon {
+  font-size: 16px;
+}
+
+.cs-buy-subtitle {
+  color: #9cad87;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.cs-buy-body {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 18px;
+  padding: 18px;
+}
+
+.cs-buy-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.cs-section-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #9cad87;
+  letter-spacing: 0.1em;
+  margin-bottom: 4px;
+}
+
+.cs-slot-btn {
+  display: grid;
+  grid-template-columns: 26px 1fr auto;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 9px 12px;
+  background: rgba(18, 24, 16, 0.85);
+  border: 1px solid #526141;
+  color: #d6e2c4;
+  font-family: Tahoma, Verdana, sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.1s ease, border-color 0.1s ease, color 0.1s ease;
+}
+
+.cs-slot-btn:hover,
+.cs-slot-btn.is-active {
+  background: rgba(65, 82, 48, 0.92);
+  border-color: #ffb700;
+  color: #ffb700;
+}
+
+.cs-slot-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  background: rgba(255, 183, 0, 0.16);
+  border: 1px solid rgba(255, 183, 0, 0.45);
+  color: #ffb700;
+  font-size: 11px;
+}
+
+.cs-slot-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cs-slot-price {
+  font-size: 12px;
+  color: #a7b892;
+}
+
+.cs-slot-btn.is-active .cs-slot-price {
+  color: #ffb700;
+}
+
+.cs-list-spacer {
+  flex: 1;
+  min-height: 10px;
+}
+
+.cs-cancel-btn {
+  border-color: #7c4d40;
+  color: #f4a261;
+}
+
+.cs-cancel-btn:hover {
+  background: rgba(92, 42, 32, 0.9);
+  border-color: #e76f51;
+  color: #ffffff;
+}
+
+/* Right Preview Column */
+.cs-buy-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  background: rgba(16, 22, 15, 0.9);
+  border: 1px solid #526141;
+  padding: 14px;
+}
+
+.cs-portal-frame {
+  position: relative;
+  height: 230px;
+  background:
+    radial-gradient(circle at 50% 60%, rgba(72, 104, 62, 0.35), rgba(10, 14, 10, 0.95)),
+    repeating-linear-gradient(
+      0deg,
+      rgba(255, 183, 0, 0.03) 0px,
+      rgba(255, 183, 0, 0.03) 1px,
+      transparent 1px,
+      transparent 4px
+    );
+  border: 1px solid #6b7b57;
+  overflow: hidden;
+}
+
+.cs-portal-badge {
+  position: absolute;
+  top: 10px;
+  left: 12px;
+  z-index: 2;
+  color: #ffb700;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  background: rgba(14, 18, 12, 0.78);
+  padding: 3px 8px;
+  border: 1px solid rgba(255, 183, 0, 0.4);
+}
+
+.cs-portal-category {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  z-index: 2;
+  color: #a7b892;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.cs-spec-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.cs-spec-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  border-bottom: 1px solid #3c4930;
+  padding-bottom: 8px;
+}
+
+.cs-spec-name {
+  margin: 0;
+  font-size: 18px;
+  color: #ffb700;
+  letter-spacing: 0.04em;
+}
+
+.cs-spec-origin {
+  font-size: 11px;
+  color: #9cad87;
+  margin-top: 3px;
+  letter-spacing: 0.05em;
+}
+
+.cs-spec-price {
+  font-size: 20px;
+  font-weight: 800;
+  color: #80ed99;
+}
+
+.cs-spec-desc {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: #c8d6b9;
+}
+
+.cs-stat-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.cs-stat-row {
+  display: grid;
+  grid-template-columns: 125px 1fr 42px;
+  align-items: center;
+  gap: 10px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.cs-stat-label {
+  color: #9cad87;
+  letter-spacing: 0.05em;
+}
+
+.cs-stat-bar {
+  height: 8px;
+  background: rgba(34, 44, 30, 0.95);
+  border: 1px solid #4e5e3f;
+  overflow: hidden;
+}
+
+.cs-stat-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #8a9a5b, #ffb700);
+  transition: width 0.2s ease;
+}
+
+.cs-stat-val {
+  text-align: right;
+  color: #ffb700;
+}
+
+.cs-spawn-btn {
+  margin-top: 6px;
+  padding: 11px 16px;
+  background: rgba(255, 183, 0, 0.18);
+  border: 1px solid #ffb700;
+  color: #ffb700;
+  font-family: Tahoma, Verdana, sans-serif;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.cs-spawn-btn:hover {
+  background: #ffb700;
+  color: #141a12;
+}
+
+
+/* Start / Save Menu Styles */
+.cs-start-window {
+  width: min(760px, 94vw);
+}
+
+.cs-start-body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 18px;
+}
+
+.cs-start-status {
+  padding: 8px 12px;
+  background: rgba(56, 189, 248, 0.14);
+  border: 1px solid #38bdf8;
+  color: #e0f2fe;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+.cs-save-slots-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.cs-save-slot-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 14px;
+  background: rgba(16, 22, 15, 0.9);
+  border: 1px solid #526141;
+}
+
+.cs-save-slot-card.has-data {
+  border-color: #8a9a5b;
+  background: rgba(22, 30, 20, 0.94);
+}
+
+.cs-save-slot-top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.cs-save-slot-input {
+  flex: 1;
+  background: rgba(10, 14, 10, 0.85);
+  border: 1px solid #4e5e3f;
+  color: #ffb700;
+  padding: 6px 10px;
+  font-family: Tahoma, Verdana, sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.cs-save-slot-input:focus {
+  outline: none;
+  border-color: #ffb700;
+}
+
+.cs-save-slot-meta {
+  font-size: 11px;
+  font-weight: 700;
+  color: #9cad87;
+  letter-spacing: 0.05em;
+}
+
+.cs-meta-highlight {
+  color: #80ed99;
+}
+
+.cs-save-slot-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cs-slot-action-btn {
+  padding: 7px 14px;
+  background: rgba(28, 38, 25, 0.9);
+  border: 1px solid #6b7b57;
+  color: #d6e2c4;
+  font-family: Tahoma, Verdana, sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+}
+
+.cs-slot-action-btn:hover:not(:disabled) {
+  background: rgba(65, 82, 48, 0.95);
+  border-color: #ffb700;
+  color: #ffb700;
+}
+
+.cs-slot-action-btn.is-save {
+  border-color: #ffb700;
+  color: #ffb700;
+}
+
+.cs-slot-action-btn.is-load:not(:disabled) {
+  border-color: #80ed99;
+  color: #80ed99;
+}
+
+.cs-slot-action-btn.is-delete:not(:disabled) {
+  border-color: #e76f51;
+  color: #f4a261;
+}
+
+.cs-slot-action-btn:disabled {
+  opacity: 0.38;
+  cursor: not-allowed;
+}
+
+.cs-start-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 4px;
+  padding-top: 12px;
+  border-top: 1px solid #3c4930;
+}
+
+.cs-start-scene-btns {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cs-resume-btn {
+  margin-top: 0;
+}

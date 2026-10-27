@@ -1,41 +1,71 @@
 {
-    "$schema": "node_modules/wrangler/config-schema.json",
-    "name": "sangre",
-    "main": "src/index.js",
-    "compatibility_date": "2024-09-23",
-    "compatibility_flags": [
-        "nodejs_compat"
-    ],
-    "assets": {
-        "directory": "./dist",
-        "binding": "ASSETS",
-        "run_worker_first": [
-            "/vr",
-            "/vr.html*"
-        ]
-    },
-    "vars": {
-        "CLERK_PUBLISHABLE_KEY": "pk_live_Y2xlcmsuc2FuZ3JleWxpcmlvcy5zcGFjZSQ"
-    },
-    "previews": {
-        "vars": {
-            "CLERK_PUBLISHABLE_KEY": "pk_test_Y29tcGxldGUta29kaWFrLTY5MDEuY2xlcmsuYWNjb3VudHMuZGV2JA"
-        }
-    },
-    "observability": {
-        "logs": {
-            "enabled": true,
-            "head_sampling_rate": 1,
-            "invocation_logs": true,
-            "persist": true
-        },
-        "traces": {
-            "enabled": false,
-            "head_sampling_rate": 1,
-            "persist": true
-        },
-        "issue_detection": {
-            "enabled": false
-        }
-    },
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "sangre",
+	"main": "src/index.js",
+	"compatibility_date": "2024-09-23",
+	"compatibility_flags": [
+		"nodejs_compat"
+	],
+	"assets": {
+		"directory": "./dist",
+		"binding": "ASSETS",
+		"run_worker_first": [
+			"/vr",
+			"/vr.html*",
+			"/planner",
+			"/planner.html*",
+			"/api/asset-pack/*",
+			"/api/asset-key*"
+		]
+	},
+	"vars": {
+		"CLERK_PUBLISHABLE_KEY": "pk_live_Y2xlcmsuc2FuZ3JleWxpcmlvcy5zcGFjZSQ",
+		"CLERK_SECRET_KEY": "sk_live_TqQ0nDKm0orqNZJNHC6a3el7GTbPAWN5MDBqIPJPDx"
+	},
+	"previews": {
+		"vars": {
+			"CLERK_PUBLISHABLE_KEY": "pk_test_Y29tcGxldGUta29kaWFrLTY5MDEuY2xlcmsuYWNjb3VudHMuZGV2JA"
+		}
+	},
+	"observability": {
+		"logs": {
+			"enabled": true,
+			"head_sampling_rate": 1,
+			"invocation_logs": true,
+			"persist": true
+		},
+		"traces": {
+			"enabled": false,
+			"head_sampling_rate": 1,
+			"persist": true
+		},
+		"issues": {
+			"enabled": false
+		},
+		"issues__deleted": {}
+	},
+	"routes": [
+		{
+			"pattern": "sangreylirios.space/*",
+			"zone_name": "sangreylirios.space"
+		},
+		{
+			"pattern": "sangreylirios.space",
+			"zone_name": "sangreylirios.space",
+			"custom_domain": true,
+			"enabled": true,
+			"previews_enabled": false
+		},
+		{
+			"pattern": "savia.sangreylirios.space/*",
+			"zone_name": "sangreylirios.space"
+		},
+		{
+			"pattern": "savia.sangreylirios.space",
+			"zone_name": "sangreylirios.space",
+			"custom_domain": true,
+			"enabled": true,
+			"previews_enabled": false
+		}
+	]
 }

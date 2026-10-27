@@ -1,32 +1,128 @@
 // src/index.js
+import crypto from 'node:crypto';
 import { createClerkClient } from '@clerk/backend';
+
+const MAGIC_HEADER = Buffer.from('GLBENC01', 'ascii');
+const KEY_SEED = 'r3f-limonera-protected-glb-v1-secret';
+const STATIC_BUILD_KEY = crypto.createHash('sha256').update(KEY_SEED).digest();
+
+function decryptBuildPack(encryptedBuffer) {
+  if (encryptedBuffer.length <= 36 || !encryptedBuffer.subarray(0, 8).equals(MAGIC_HEADER)) {
+    return encryptedBuffer;
+  }
+  const iv = encryptedBuffer.subarray(8, 20);
+  const authTag = encryptedBuffer.subarray(encryptedBuffer.length - 16);
+  const ciphertext = encryptedBuffer.subarray(20, encryptedBuffer.length - 16);
+
+  const decipher = crypto.createDecipheriv('aes-256-gcm', STATIC_BUILD_KEY, iv);
+  decipher.setAuthTag(authTag);
+  return Buffer.concat([decipher.update(ciphertext), decipher.final()]);
+}
+
+function encryptWithEphemeralEcdh(rawBuffer, clientPubBase64) {
+  const clientPubRaw = Buffer.from(clientPubBase64, 'base64');
+  const serverEcdh = crypto.createECDH('prime256v1');
+  const serverPubRaw = serverEcdh.generateKeys();
+  const sharedSecret = serverEcdh.computeSecret(clientPubRaw);
+
+  const iv = crypto.randomBytes(12);
+  const cipher = crypto.createCipheriv('aes-256-gcm', sharedSecret, iv);
+  const encrypted = Buffer.concat([cipher.update(rawBuffer), cipher.final()]);
+  const authTag = cipher.getAuthTag();
+  sharedSecret.fill(0);
+
+  return {
+    payload: Buffer.concat([MAGIC_HEADER, iv, encrypted, authTag]),
+    serverPubBase64: serverPubRaw.toString('base64'),
+  };
+}
+
+async function isClerkAuthenticated(request, env) {
+  const cookieHeader = request.headers.get('Cookie') || '';
+  const sessionToken = cookieHeader
+    .split(';')
+    .map((c) => c.trim())
+    .find((c) => c.startsWith('__session='))
+    ?.split('=')[1];
+
+  if (!sessionToken) return false;
+
+  const clerk = createClerkClient({ secretKey: env.CLERK_SECRET_KEY });
+  try {
+    await clerk.authenticateRequest(request, {
+      publishableKey: env.CLERK_PUBLISHABLE_KEY,
+      secretKey: env.CLERK_SECRET_KEY,
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function isProtectedHost(url) {
+  return (
+    url.hostname === 'savia.sangreylirios.space' ||
+    url.hostname.startsWith('savia.') ||
+    url.searchParams.get('subdomain') === 'savia'
+  );
+}
 
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
+    const onProtectedSubdomain = isProtectedHost(url);
 
-    // Route guard for protected pages
-    if (url.pathname.startsWith('/vr')) {
-      const cookieHeader = request.headers.get('Cookie') || '';
-      const sessionToken = cookieHeader
-        .split(';')
-        .map((c) => c.trim())
-        .find((c) => c.startsWith('__session='))
-        ?.split('=')[1];
+    if (url.pathname === '/api/asset-key') {
+      return new Response('Forbidden: Static key endpoint is disabled.', { status: 403 });
+    }
 
-      if (!sessionToken) {
+    // Route guard for protected pages (/vr and /planner)
+    if (url.pathname.startsWith('/vr') || url.pathname.startsWith('/planner')) {
+      if (!onProtectedSubdomain) {
         return Response.redirect(`${url.origin}/`, 302);
       }
+      const authed = await isClerkAuthenticated(request, env);
+      if (!authed) {
+        return Response.redirect(`${url.origin}/`, 302);
+      }
+    }
 
-      const clerk = createClerkClient({ secretKey: env.CLERK_SECRET_KEY });
-      try {
-        await clerk.authenticateRequest(request, {
-          publishableKey: env.CLERK_PUBLISHABLE_KEY,
-          secretKey: env.CLERK_SECRET_KEY,
+    // Ephemeral ECDH P-256 handshake for protected 3D asset packs
+    if (url.pathname.startsWith('/api/asset-pack/')) {
+      if (!onProtectedSubdomain) {
+        return new Response('Forbidden: Protected subdomain required.', { status: 403 });
+      }
+      const authed = await isClerkAuthenticated(request, env);
+      if (!authed) {
+        return new Response('Unauthorized', { status: 401 });
+      }
+
+      const clientPubHeader = request.headers.get('x-r3f-client-pub');
+      if (request.headers.get('x-r3f-asset-request') !== '1' || !clientPubHeader) {
+        return new Response('Forbidden: Missing Ephemeral ECDH P-256 public key.', {
+          status: 403,
         });
-      } catch {
-        return Response.redirect(`${url.origin}/`, 302);
       }
+
+      const assetRes = await env.ASSETS.fetch(request);
+      if (!assetRes.ok) {
+        return assetRes;
+      }
+
+      const buildEncrypted = Buffer.from(await assetRes.arrayBuffer());
+      const rawGlb = decryptBuildPack(buildEncrypted);
+      const { payload, serverPubBase64 } = encryptWithEphemeralEcdh(rawGlb, clientPubHeader);
+      rawGlb.fill(0);
+
+      return new Response(payload, {
+        status: 200,
+        headers: {
+          'Content-Type': 'application/x-r3f-encrypted',
+          'X-Content-Type-Options': 'nosniff',
+          'Cache-Control': 'no-store',
+          'x-r3f-server-pub': serverPubBase64,
+        },
+      });
     }
 
     // Serve static files generated by Vite

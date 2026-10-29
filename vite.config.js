@@ -142,6 +142,7 @@ function glbProtectionPlugin() {
 }
 
 export default defineConfig({
+  envPrefix: ['VITE_', 'ENV'],
   plugins: [basicSsl(), react(), glbProtectionPlugin()],
   assetsInclude: [
     '**/*.gltf',

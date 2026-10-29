@@ -32,7 +32,7 @@ useFrame(() => {
 
 return (
     <mesh ref={mesh}>
-        <sphereGeometry args={[1, 32, 32]} />
+        <sphereGeometry args={[2, 32, 32]} />
         <meshStandardMaterial color="orange" />
     </mesh>
 )

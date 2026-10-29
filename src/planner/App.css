@@ -606,3 +606,137 @@ body {
 .cs-resume-btn {
   margin-top: 0;
 }
+
+/* Welcome & Instructions Screen Styles */
+.cs-welcome-overlay {
+  background: #000000;
+  backdrop-filter: none;
+}
+
+.cs-welcome-window {
+  width: min(760px, 94vw);
+}
+
+.cs-welcome-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 18px;
+}
+
+.cs-controls-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.cs-control-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px;
+  background: rgba(16, 22, 15, 0.9);
+  border: 1px solid #526141;
+}
+
+.cs-control-list {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.cs-control-row {
+  display: grid;
+  grid-template-columns: 160px 1fr;
+  align-items: center;
+  gap: 12px;
+  font-size: 12px;
+}
+
+.cs-key-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 8px;
+  background: rgba(255, 183, 0, 0.16);
+  border: 1px solid rgba(255, 183, 0, 0.45);
+  color: #ffb700;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-align: center;
+}
+
+.cs-control-desc {
+  color: #d6e2c4;
+  line-height: 1.4;
+}
+
+.cs-welcome-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 4px;
+  padding-top: 14px;
+  border-top: 1px solid #3c4930;
+}
+
+.cs-loading-status {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.cs-loading-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #9cad87;
+}
+
+.cs-loading-bar {
+  height: 8px;
+  background: rgba(34, 44, 30, 0.95);
+  border: 1px solid #4e5e3f;
+  overflow: hidden;
+}
+
+.cs-loading-fill {
+  height: 100%;
+  transition: width 0.25s ease;
+}
+
+.cs-loading-fill.is-loading {
+  width: 45%;
+  background: linear-gradient(90deg, #8a9a5b, #ffb700);
+  animation: cs-loading-pulse 1.2s ease-in-out infinite alternate;
+}
+
+.cs-loading-fill.is-ready {
+  width: 100%;
+  background: #80ed99;
+}
+
+@keyframes cs-loading-pulse {
+  from {
+    width: 25%;
+    opacity: 0.65;
+  }
+  to {
+    width: 85%;
+    opacity: 1;
+  }
+}
+
+.cs-enter-btn {
+  margin-top: 0;
+  min-width: 210px;
+}
+
+.cs-enter-btn:disabled {
+  opacity: 0.45;
+  cursor: wait;
+}
+

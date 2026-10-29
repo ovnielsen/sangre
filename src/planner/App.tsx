@@ -7,6 +7,7 @@ import './App.css';
 import Main from './scenes/Main.tsx';
 import { PlantBuyMenu } from './components/PlantBuyMenu.tsx';
 import { StartMenu } from './components/StartMenu.tsx';
+import { WelcomeScreen } from './components/WelcomeScreen.tsx';
 import { PLANT_CATALOG, type PlantItem, type SpawnedPlant } from './data/plantCatalog.ts';
 import {
   captureCurrentPlantLayout,
@@ -40,13 +41,40 @@ function getDefaultPlants(): SpawnedPlant[] {
 }
 
 function App() {
+  const [isSceneReady, setIsSceneReady] = useState(false);
+  const [isWelcomeOpen, setIsWelcomeOpen] = useState(true);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isStartMenuOpen, setIsStartMenuOpen] = useState(false);
   const [spawnedPlants, setSpawnedPlants] = useState<SpawnedPlant[]>(() => getDefaultPlants());
 
   const spawnPositionRef = useRef<[number, number, number]>([1, 1.55, -2.2]);
 
+  const handleSceneReady = useCallback(() => {
+    setIsSceneReady(true);
+  }, []);
+
+  const handleEnterFromWelcome = useCallback(() => {
+    if (!isSceneReady) return;
+    setIsWelcomeOpen(false);
+    safeRequestPointerLock();
+  }, [isSceneReady]);
+
+  const toggleWelcome = useCallback(() => {
+    setIsMenuOpen(false);
+    setIsStartMenuOpen(false);
+    setIsWelcomeOpen((prev) => {
+      const next = !prev;
+      if (next && document.pointerLockElement) {
+        document.exitPointerLock?.();
+      } else if (!next) {
+        safeRequestPointerLock();
+      }
+      return next;
+    });
+  }, []);
+
   const toggleMenu = useCallback(() => {
+    setIsWelcomeOpen(false);
     setIsStartMenuOpen(false);
     setIsMenuOpen((prev) => {
       const next = !prev;
@@ -60,6 +88,7 @@ function App() {
   }, []);
 
   const toggleStartMenu = useCallback(() => {
+    setIsWelcomeOpen(false);
     setIsMenuOpen(false);
     setIsStartMenuOpen((prev) => {
       const next = !prev;
@@ -131,6 +160,15 @@ function App() {
       const activeTag = (document.activeElement as HTMLElement | null)?.tagName;
       if (activeTag === 'INPUT' || activeTag === 'TEXTAREA') return;
 
+      if (event.code === 'KeyH') {
+        if (!isSceneReady) return;
+        event.preventDefault();
+        toggleWelcome();
+        return;
+      }
+
+      if (isWelcomeOpen && !isSceneReady) return;
+
       if (event.code === 'KeyB' || event.code === 'Tab') {
         event.preventDefault();
         toggleMenu();
@@ -164,7 +202,7 @@ function App() {
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [handleLoadLayout, toggleMenu, toggleStartMenu]);
+  }, [handleLoadLayout, isSceneReady, isWelcomeOpen, toggleMenu, toggleStartMenu, toggleWelcome]);
 
   return (
     <>
@@ -174,8 +212,9 @@ function App() {
         <Physics>
           <Main
             spawnedPlants={spawnedPlants}
-            isMenuOpen={isMenuOpen || isStartMenuOpen}
+            isMenuOpen={isWelcomeOpen || isMenuOpen || isStartMenuOpen}
             spawnPositionRef={spawnPositionRef}
+            onSceneReady={handleSceneReady}
           />
         </Physics>
       </Canvas>
@@ -209,10 +248,25 @@ function App() {
           <span className="cs-hud-key">M</span>
           <span>START / SAVE</span>
         </button>
+        <button
+          type="button"
+          className="cs-hud-buy-btn"
+          data-testid="hud-open-help-menu"
+          onClick={toggleWelcome}
+        >
+          <span className="cs-hud-key">H</span>
+          <span>HELP</span>
+        </button>
         <div className="cs-hud-counter" data-testid="spawned-plants-count">
           PLANTS: {spawnedPlants.length}
         </div>
       </div>
+
+      <WelcomeScreen
+        isOpen={isWelcomeOpen}
+        isSceneReady={isSceneReady}
+        onEnter={handleEnterFromWelcome}
+      />
 
       <PlantBuyMenu
         isOpen={isMenuOpen}

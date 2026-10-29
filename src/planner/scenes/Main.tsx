@@ -1,4 +1,4 @@
-import { Suspense } from 'react';
+import { Suspense, useEffect } from 'react';
 import type { MutableRefObject } from 'react';
 import { Debug, usePlane } from '@react-three/cannon';
 import buildingPath from '../assets/building.glb';
@@ -14,26 +14,34 @@ export interface MainProps {
   spawnedPlants: SpawnedPlant[];
   isMenuOpen: boolean;
   spawnPositionRef: MutableRefObject<[number, number, number]>;
+  onSceneReady?: () => void;
 }
 
-function Main({ spawnedPlants, isMenuOpen, spawnPositionRef }: MainProps) {
+const isDevEnv = import.meta.env.ENV === 'dev';
+
+function SceneReadySignal({ onReady }: { onReady?: () => void }) {
+  useEffect(() => {
+    onReady?.();
+  }, [onReady]);
+  return null;
+}
+
+function Main({ spawnedPlants, isMenuOpen, spawnPositionRef, onSceneReady }: MainProps) {
   const [ref] = usePlane(() => ({
     rotation: [-Math.PI / 2, 0, 0],
     position: [0, 0.85, 0],
     material: { friction: 0, restitution: 0 },
   }));
 
-  return (
+  const sceneContent = (
     <>
-    <Stats/>
-    <Debug>
       <Player
         position={[1, 1.25, 0]}
         isMenuOpen={isMenuOpen}
         spawnPositionRef={spawnPositionRef}
       />
       <Suspense fallback={null}>
-        <GltfModel modelPath={buildingPath} />
+        <GltfModel position={[5, 0.85, 0]} modelPath={buildingPath} />
         {spawnedPlants.map((entry) => (
           <DragModel
             key={entry.instanceId}
@@ -44,9 +52,16 @@ function Main({ spawnedPlants, isMenuOpen, spawnPositionRef }: MainProps) {
             initialPinned={entry.initialPinned}
           />
         ))}
+        <SceneReadySignal onReady={onSceneReady} />
       </Suspense>
       <Ground ref={ref} position={[0, 0.85, 0]} />
-      </Debug>
+    </>
+  );
+
+  return (
+    <>
+      {isDevEnv && <Stats />}
+      {isDevEnv ? <Debug>{sceneContent}</Debug> : sceneContent}
     </>
   );
 }

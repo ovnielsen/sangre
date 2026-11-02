@@ -13,9 +13,21 @@ import {
   captureCurrentPlantLayout,
   getActiveClerkUser,
   loadUserSaveSlots,
+  parseSavedPlantEntries,
   saveSlotForUser,
   type SavedPlantEntry,
 } from './utils/plantSaveStorage.ts';
+
+function detectShowcaseMode(): boolean {
+  if (typeof window === 'undefined') return false;
+  if (window.__SHOWCASE_MODE__) return true;
+  const host = window.location.hostname;
+  if (host === 'horoscopo.sangreylirios.space' || host.startsWith('horoscopo.')) {
+    return true;
+  }
+  const params = new URLSearchParams(window.location.search);
+  return params.get('subdomain') === 'horoscopo';
+}
 
 function safeRequestPointerLock(element?: Element | null) {
   try {
@@ -41,11 +53,15 @@ function getDefaultPlants(): SpawnedPlant[] {
 }
 
 function App() {
+  const [isShowcaseMode] = useState(() => detectShowcaseMode());
+  const [isPencilDraft, setIsPencilDraft] = useState(false);
   const [isSceneReady, setIsSceneReady] = useState(false);
   const [isWelcomeOpen, setIsWelcomeOpen] = useState(true);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isStartMenuOpen, setIsStartMenuOpen] = useState(false);
-  const [spawnedPlants, setSpawnedPlants] = useState<SpawnedPlant[]>(() => getDefaultPlants());
+  const [spawnedPlants, setSpawnedPlants] = useState<SpawnedPlant[]>(() =>
+    detectShowcaseMode() ? [] : getDefaultPlants()
+  );
 
   const spawnPositionRef = useRef<[number, number, number]>([1, 1.55, -2.2]);
 
@@ -73,7 +89,12 @@ function App() {
     });
   }, []);
 
+  const togglePencilDraft = useCallback(() => {
+    setIsPencilDraft((prev) => !prev);
+  }, []);
+
   const toggleMenu = useCallback(() => {
+    if (isShowcaseMode) return;
     setIsWelcomeOpen(false);
     setIsStartMenuOpen(false);
     setIsMenuOpen((prev) => {
@@ -85,9 +106,10 @@ function App() {
       }
       return next;
     });
-  }, []);
+  }, [isShowcaseMode]);
 
   const toggleStartMenu = useCallback(() => {
+    if (isShowcaseMode) return;
     setIsWelcomeOpen(false);
     setIsMenuOpen(false);
     setIsStartMenuOpen((prev) => {
@@ -99,7 +121,7 @@ function App() {
       }
       return next;
     });
-  }, []);
+  }, [isShowcaseMode]);
 
   const handleCloseMenu = useCallback(() => {
     setIsMenuOpen(false);
@@ -112,6 +134,7 @@ function App() {
   }, []);
 
   const handleSelectPlant = useCallback((plant: PlantItem) => {
+    if (isShowcaseMode) return;
     const [x, y, z] = spawnPositionRef.current;
     setSpawnedPlants((prev) => [
       ...prev.map((item) => (item.autoGrab ? { ...item, autoGrab: false } : item)),
@@ -125,7 +148,7 @@ function App() {
     ]);
     setIsMenuOpen(false);
     safeRequestPointerLock();
-  }, []);
+  }, [isShowcaseMode]);
 
   const handleLoadLayout = useCallback((entries: SavedPlantEntry[]) => {
     const batchTime = Date.now();
@@ -144,6 +167,32 @@ function App() {
     setSpawnedPlants(restored);
     setIsStartMenuOpen(false);
   }, []);
+
+  useEffect(() => {
+    if (!isShowcaseMode) return;
+    let cancelled = false;
+
+    fetch('/horoscopo-layout.json', { cache: 'no-cache' })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((json) => {
+        if (cancelled || !json) return;
+        const entries = parseSavedPlantEntries(json);
+        if (entries.length > 0) {
+          handleLoadLayout(entries);
+        } else {
+          setSpawnedPlants(getDefaultPlants());
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setSpawnedPlants(getDefaultPlants());
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [handleLoadLayout, isShowcaseMode]);
 
   const handleClearScene = useCallback(() => {
     setSpawnedPlants([]);
@@ -167,6 +216,13 @@ function App() {
         return;
       }
 
+      if (isShowcaseMode && event.code === 'KeyP') {
+        event.preventDefault();
+        togglePencilDraft();
+        return;
+      }
+
+      if (isShowcaseMode) return;
       if (isWelcomeOpen && !isSceneReady) return;
 
       if (event.code === 'KeyB' || event.code === 'Tab') {
@@ -202,17 +258,32 @@ function App() {
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [handleLoadLayout, isSceneReady, isWelcomeOpen, toggleMenu, toggleStartMenu, toggleWelcome]);
+  }, [
+    handleLoadLayout,
+    isSceneReady,
+    isShowcaseMode,
+    isWelcomeOpen,
+    toggleMenu,
+    togglePencilDraft,
+    toggleStartMenu,
+    toggleWelcome,
+  ]);
 
   return (
     <>
-      <Canvas>
+      <Canvas camera={{ fov: 60, near: 0.1, far: 2000 }}>
         <Sky distance={450000} sunPosition={[0, 1, 0]} inclination={0} azimuth={0.25} />
-        <ambientLight />
+        <ambientLight intensity={isPencilDraft ? 0.75 : 1.0} />
+        {isPencilDraft && (
+          <hemisphereLight args={['#d8e4f0', '#6d8299', 0.65]} />
+        )}
+        <directionalLight position={[18, 32, 24]} intensity={isPencilDraft ? 0.9 : 0.45} />
         <Physics>
           <Main
             spawnedPlants={spawnedPlants}
             isMenuOpen={isWelcomeOpen || isMenuOpen || isStartMenuOpen}
+            readOnly={isShowcaseMode}
+            pencilDraft={isPencilDraft}
             spawnPositionRef={spawnPositionRef}
             onSceneReady={handleSceneReady}
           />
@@ -230,24 +301,39 @@ function App() {
       <div id="fps-prompt" aria-live="polite" />
 
       <div className="cs-hud-bar" data-testid="cs-hud-bar">
-        <button
-          type="button"
-          className="cs-hud-buy-btn"
-          data-testid="hud-open-buy-menu"
-          onClick={toggleMenu}
-        >
-          <span className="cs-hud-key">B</span>
-          <span>PLANT BUY MENU</span>
-        </button>
-        <button
-          type="button"
-          className="cs-hud-buy-btn"
-          data-testid="hud-open-start-menu"
-          onClick={toggleStartMenu}
-        >
-          <span className="cs-hud-key">M</span>
-          <span>START / SAVE</span>
-        </button>
+        {!isShowcaseMode && (
+          <>
+            <button
+              type="button"
+              className="cs-hud-buy-btn"
+              data-testid="hud-open-buy-menu"
+              onClick={toggleMenu}
+            >
+              <span className="cs-hud-key">B</span>
+              <span>PLANT BUY MENU</span>
+            </button>
+            <button
+              type="button"
+              className="cs-hud-buy-btn"
+              data-testid="hud-open-start-menu"
+              onClick={toggleStartMenu}
+            >
+              <span className="cs-hud-key">M</span>
+              <span>START / SAVE</span>
+            </button>
+          </>
+        )}
+        {isShowcaseMode && (
+          <button
+            type="button"
+            className={`cs-hud-buy-btn ${isPencilDraft ? 'is-active' : ''}`}
+            data-testid="hud-toggle-pencil-draft"
+            onClick={togglePencilDraft}
+          >
+            <span className="cs-hud-key">P</span>
+            <span>{isPencilDraft ? 'PENCIL DRAFT: ON' : 'PENCIL DRAFT: OFF'}</span>
+          </button>
+        )}
         <button
           type="button"
           className="cs-hud-buy-btn"
@@ -265,22 +351,27 @@ function App() {
       <WelcomeScreen
         isOpen={isWelcomeOpen}
         isSceneReady={isSceneReady}
+        readOnly={isShowcaseMode}
         onEnter={handleEnterFromWelcome}
       />
 
-      <PlantBuyMenu
-        isOpen={isMenuOpen}
-        onClose={handleCloseMenu}
-        onSelectPlant={handleSelectPlant}
-      />
+      {!isShowcaseMode && (
+        <>
+          <PlantBuyMenu
+            isOpen={isMenuOpen}
+            onClose={handleCloseMenu}
+            onSelectPlant={handleSelectPlant}
+          />
 
-      <StartMenu
-        isOpen={isStartMenuOpen}
-        onClose={handleCloseStartMenu}
-        onLoadLayout={handleLoadLayout}
-        onClearScene={handleClearScene}
-        onResetDefault={handleResetDefault}
-      />
+          <StartMenu
+            isOpen={isStartMenuOpen}
+            onClose={handleCloseStartMenu}
+            onLoadLayout={handleLoadLayout}
+            onClearScene={handleClearScene}
+            onResetDefault={handleResetDefault}
+          />
+        </>
+      )}
     </>
   );
 }

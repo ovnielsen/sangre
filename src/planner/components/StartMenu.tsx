@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import {
   captureCurrentPlantLayout,
   deleteSlotForUser,
+  exportLayoutToJsonFile,
   getActiveClerkUser,
   loadUserSaveSlots,
   saveSlotForUser,
@@ -92,6 +93,14 @@ export function StartMenu({
     const nextSlots = deleteSlotForUser(activeUser.id, slotId);
     setSlots({ ...nextSlots });
     setStatusBanner(`CLEARED SLOT #${slotId}`);
+  };
+
+  const handleExportCurrentScene = () => {
+    const currentPlants = captureCurrentPlantLayout();
+    exportLayoutToJsonFile('Horoscopo Showcase Layout', currentPlants);
+    setStatusBanner(
+      `EXPORTED ${currentPlants.length} PLANT(S) TO HOROSCOPO-LAYOUT.JSON`
+    );
   };
 
   return (
@@ -222,6 +231,14 @@ export function StartMenu({
                 onClick={onResetDefault}
               >
                 RESET DEFAULT SCENE
+              </button>
+              <button
+                type="button"
+                className="cs-slot-action-btn is-save"
+                data-testid="scene-export-json"
+                onClick={handleExportCurrentScene}
+              >
+                EXPORT JSON
               </button>
             </div>
 

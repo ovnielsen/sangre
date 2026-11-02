@@ -1,13 +1,96 @@
+import { useEffect, useState } from 'react';
 import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js';
 import { GLTFLoader, type GLTF } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { DRACO_DECODER_URL, fetchAndDecryptGlbBuffer } from '../../utils/protectedGlb.ts';
 
-const MAGIC_SIGNATURE = 'GLBENC01';
-const FALLBACK_SEED = 'r3f-limonera-protected-glb-v1-secret';
-const DRACO_DECODER_URL = 'https://www.gstatic.com/draco/versioned/decoders/1.5.5/';
+interface AssetProgressEntry {
+  loadedBytes: number;
+  totalBytes: number;
+  stageProgress: number; // 0..1
+  done: boolean;
+}
 
 const resolvedGltfs = new Map<string, GLTF>();
 const pendingLoads = new Map<string, Promise<GLTF>>();
+const assetProgressMap = new Map<string, AssetProgressEntry>();
+const progressListeners = new Set<() => void>();
+let highestReportedPercent = 0;
 let sharedGltfLoader: GLTFLoader | null = null;
+
+function notifyProgressListeners() {
+  for (const listener of progressListeners) {
+    listener();
+  }
+}
+
+function updateAssetProgress(modelPath: string, patch: Partial<AssetProgressEntry>) {
+  const current = assetProgressMap.get(modelPath) ?? {
+    loadedBytes: 0,
+    totalBytes: 0,
+    stageProgress: 0,
+    done: false,
+  };
+  assetProgressMap.set(modelPath, { ...current, ...patch });
+  notifyProgressListeners();
+}
+
+export function getGlbLoadingProgress(isSceneReady = false): number {
+  if (isSceneReady) {
+    highestReportedPercent = 100;
+    return 100;
+  }
+
+  if (assetProgressMap.size === 0) {
+    return highestReportedPercent;
+  }
+
+  const entries = Array.from(assetProgressMap.values());
+  const allHeadersKnown = entries.every((e) => e.totalBytes > 0 || e.done);
+
+  let ratio = 0;
+  if (allHeadersKnown) {
+    let weightedSum = 0;
+    let totalWeight = 0;
+    for (const entry of entries) {
+      const weight = entry.totalBytes > 0 ? entry.totalBytes : 1_000_000;
+      weightedSum += entry.stageProgress * weight;
+      totalWeight += weight;
+    }
+    ratio = totalWeight > 0 ? weightedSum / totalWeight : 0;
+  } else {
+    // Before all response headers arrive, weight pending header assets conservatively
+    let sum = 0;
+    for (const entry of entries) {
+      sum += entry.totalBytes > 0 ? Math.min(entry.stageProgress, 0.15) : entry.stageProgress;
+    }
+    ratio = sum / entries.length;
+  }
+
+  const computedPercent = Math.min(98, Math.max(0, Math.round(ratio * 98)));
+  if (computedPercent > highestReportedPercent) {
+    highestReportedPercent = computedPercent;
+  }
+  return highestReportedPercent;
+}
+
+export function useGlbLoadingProgress(isSceneReady: boolean): number {
+  const [progress, setProgress] = useState<number>(() => getGlbLoadingProgress(isSceneReady));
+
+  useEffect(() => {
+    const sync = () => {
+      setProgress(getGlbLoadingProgress(isSceneReady));
+    };
+    sync();
+    if (isSceneReady) return;
+
+    progressListeners.add(sync);
+    return () => {
+      progressListeners.delete(sync);
+    };
+  }, [isSceneReady]);
+
+  return isSceneReady ? 100 : progress;
+}
 
 function getGltfLoader(): GLTFLoader {
   if (!sharedGltfLoader) {
@@ -19,103 +102,25 @@ function getGltfLoader(): GLTFLoader {
   return sharedGltfLoader;
 }
 
-function uint8ArrayToBase64(bytes: Uint8Array): string {
-  let binary = '';
-  for (let i = 0; i < bytes.byteLength; i++) {
-    binary += String.fromCharCode(bytes[i]);
-  }
-  return window.btoa(binary);
-}
-
-function base64ToUint8Array(base64: string): Uint8Array<ArrayBuffer> {
-  const binary = window.atob(base64);
-  const bytes = new Uint8Array(new ArrayBuffer(binary.length));
-  for (let i = 0; i < binary.length; i++) {
-    bytes[i] = binary.charCodeAt(i);
-  }
-  return bytes;
-}
-
-async function getFallbackStaticKey(): Promise<CryptoKey> {
-  const encoder = new TextEncoder();
-  const digest = await window.crypto.subtle.digest(
-    'SHA-256',
-    encoder.encode(FALLBACK_SEED)
-  );
-  return window.crypto.subtle.importKey(
-    'raw',
-    digest,
-    { name: 'AES-GCM' },
-    false,
-    ['decrypt']
-  );
-}
-
 async function fetchDecryptAndParseGlb(modelPath: string): Promise<GLTF> {
   const existing = resolvedGltfs.get(modelPath);
-  if (existing) return existing;
-
-  // 1. Generate a one-time Ephemeral ECDH P-256 keypair with extractable: false
-  // The private key cannot be exported even from the browser DevTools Console.
-  const clientKeyPair = await window.crypto.subtle.generateKey(
-    { name: 'ECDH', namedCurve: 'P-256' },
-    false,
-    ['deriveKey']
-  );
-
-  const clientPubRaw = await window.crypto.subtle.exportKey('raw', clientKeyPair.publicKey);
-  const clientPubBase64 = uint8ArrayToBase64(new Uint8Array(clientPubRaw));
-
-  // 2. Request the encrypted binary pack, sending only the ephemeral public key
-  const response = await fetch(modelPath, {
-    headers: {
-      'x-r3f-asset-request': '1',
-      'x-r3f-client-pub': clientPubBase64,
-    },
-  });
-  const buffer = await response.arrayBuffer();
-
-  let glbBuffer = buffer;
-
-  if (buffer.byteLength > 36) {
-    const headerBytes = new Uint8Array(buffer, 0, 8);
-    const headerStr = String.fromCharCode(...headerBytes);
-
-    if (headerStr === MAGIC_SIGNATURE) {
-      const iv = new Uint8Array(buffer, 8, 12);
-      const ciphertextWithTag = new Uint8Array(buffer, 20);
-      const serverPubBase64 = response.headers.get('x-r3f-server-pub');
-
-      let aesKey: CryptoKey;
-      if (serverPubBase64) {
-        // 3. Import server's one-time ECDH public key and derive non-extractable AES-256-GCM key
-        const serverPubBytes = base64ToUint8Array(serverPubBase64);
-        const serverPubKey = await window.crypto.subtle.importKey(
-          'raw',
-          serverPubBytes,
-          { name: 'ECDH', namedCurve: 'P-256' },
-          false,
-          []
-        );
-        aesKey = await window.crypto.subtle.deriveKey(
-          { name: 'ECDH', public: serverPubKey },
-          clientKeyPair.privateKey,
-          { name: 'AES-GCM', length: 256 },
-          false,
-          ['decrypt']
-        );
-      } else {
-        // Fallback for static file preview server without middleware
-        aesKey = await getFallbackStaticKey();
-      }
-
-      glbBuffer = await window.crypto.subtle.decrypt(
-        { name: 'AES-GCM', iv },
-        aesKey,
-        ciphertextWithTag
-      );
-    }
+  if (existing) {
+    updateAssetProgress(modelPath, { stageProgress: 1, done: true });
+    return existing;
   }
+
+  updateAssetProgress(modelPath, {
+    loadedBytes: 0,
+    totalBytes: 0,
+    stageProgress: 0.02,
+    done: false,
+  });
+
+  const glbBuffer = await fetchAndDecryptGlbBuffer(modelPath, (patch) => {
+    updateAssetProgress(modelPath, patch);
+  });
+
+  updateAssetProgress(modelPath, { stageProgress: 0.92 });
 
   // 4. Parse directly in memory without creating a Blob or blob: URL in the Network tab
   const loader = getGltfLoader();
@@ -127,6 +132,7 @@ async function fetchDecryptAndParseGlb(modelPath: string): Promise<GLTF> {
   new Uint8Array(glbBuffer).fill(0);
 
   resolvedGltfs.set(modelPath, gltf);
+  updateAssetProgress(modelPath, { stageProgress: 1, done: true });
   return gltf;
 }
 

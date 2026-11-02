@@ -20,6 +20,8 @@ export interface DragModelProps {
   initialPosition: [number, number, number];
   autoGrab?: boolean;
   initialPinned?: boolean;
+  readOnly?: boolean;
+  pencilDraft?: boolean;
 }
 
 export function DragModel({
@@ -28,6 +30,8 @@ export function DragModel({
   initialPosition,
   autoGrab = false,
   initialPinned = false,
+  readOnly = false,
+  pencilDraft = false,
 }: DragModelProps) {
   const groupRef = useRef<Group>(null);
   const [matrix] = useState(() =>
@@ -239,6 +243,7 @@ export function DragModel({
       matrix={matrix}
       autoTransform={false}
       onDragStart={() => {
+        if (readOnly) return;
         // Only allow DragControls gizmo dragging when explicitly in [Q] Free Pointer Mode
         const isFreeMode =
           document.getElementById('fps-crosshair')?.dataset.mode === 'free';
@@ -275,7 +280,7 @@ export function DragModel({
         <meshBasicMaterial transparent opacity={0} depthWrite={false} />
       </mesh>
       <Suspense fallback={null}>
-        <PlantMesh plant={plant} />
+        <PlantMesh plant={plant} pencilDraft={pencilDraft} />
       </Suspense>
     </DragControls>
   );

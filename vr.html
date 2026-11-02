@@ -15,13 +15,10 @@
 <body>
     <div id="nav"></div>
     <div id="app"></div>
-    <a-scene id="scene" renderer="antialias: true; colorManagement: true;">
+    <a-scene id="scene" renderer="antialias: true; colorManagement: true;" gltf-model="dracoDecoderPath: https://www.gstatic.com/draco/versioned/decoders/1.5.5/;">
         <a-entity environment></a-entity>
-        <a-assets>
-            <a-asset-item id="building" src="building.glb" progress></a-asset-item>
-        </a-assets>
         <!-- Architecture Model -->
-        <a-entity edit id="building" gltf-model="#building" position="-1 -0.7 0"></a-entity>
+        <a-entity edit id="building" position="5 0 0"></a-entity>
         <!-- Text -->
         <!-- <a-entity id="menu" text="value: Welcome to la limonera VR experience;" position="0 2 7"></a-entity>
       <a-entity text="font: mozillavr; value: Via stock font name." position="1 1 7"></a-entity>
@@ -34,6 +31,7 @@
         </a-entity>
     </a-scene>
     <script type="module" src="/main.js"></script>
+    <script type="module" src="/src/vr/main.ts"></script>
 </body>
 
 </html>

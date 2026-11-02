@@ -119,3 +119,65 @@ export function deleteSlotForUser(
   }
   return existing;
 }
+
+function isValidSavedPlantEntry(item: unknown): item is SavedPlantEntry {
+  if (!item || typeof item !== 'object') return false;
+  const candidate = item as Record<string, unknown>;
+  return (
+    typeof candidate.plantId === 'string' &&
+    Array.isArray(candidate.position) &&
+    candidate.position.length === 3 &&
+    candidate.position.every((n) => typeof n === 'number' && Number.isFinite(n))
+  );
+}
+
+export function parseSavedPlantEntries(rawJson: unknown): SavedPlantEntry[] {
+  if (!rawJson) return [];
+
+  if (Array.isArray(rawJson)) {
+    return rawJson.filter(isValidSavedPlantEntry).map((entry) => ({
+      plantId: entry.plantId,
+      position: [entry.position[0], entry.position[1], entry.position[2]],
+      pinned: Boolean(entry.pinned),
+    }));
+  }
+
+  if (typeof rawJson === 'object') {
+    const obj = rawJson as Record<string, unknown>;
+    if (Array.isArray(obj.plants)) {
+      return parseSavedPlantEntries(obj.plants);
+    }
+
+    for (const val of Object.values(obj)) {
+      if (val && typeof val === 'object' && Array.isArray((val as Record<string, unknown>).plants)) {
+        return parseSavedPlantEntries((val as Record<string, unknown>).plants);
+      }
+    }
+  }
+
+  return [];
+}
+
+export function exportLayoutToJsonFile(
+  label: string,
+  plants: SavedPlantEntry[],
+  fileName = 'horoscopo-layout.json'
+): void {
+  const payload: SaveSlotData = {
+    slotId: 1,
+    label: label.trim() || 'Horoscopo Showcase Layout',
+    updatedAt: new Date().toISOString(),
+    plants,
+  };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], {
+    type: 'application/json',
+  });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = fileName;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}

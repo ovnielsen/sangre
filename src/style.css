@@ -1,8 +1,15 @@
 body {
   margin: 0;
-  background: #0d120c;
+  background: #e5222d;
   color: #f4f1ea;
   font-family: Tahoma, Verdana, sans-serif;
+}
+@font-face {
+    font-family: 'Maigre';
+    src: url('/public/Maigre.woff2') format('woff2'), /* Modern Browsers */
+         url('/public/Maigre.woff') format('woff'), /* Modern Browsers */
+         url('/public/Maigre.ttf')  format('truetype'), /* Safari, Android, iOS */
+         url('/public/Maigre.svg#svgFontName') format('svg'); /* Legacy iOS */
 }
 
 #app {
@@ -24,14 +31,16 @@ body {
   gap: 2rem;
   text-align: center;
   padding: 2rem;
+  font-family: 'Maigre';
+  font-weight: normal;
+  font-style: normal;
+
 }
 
 .splash-title {
   margin: 0;
-  font-size: clamp(2rem, 5vw, 3.5rem);
+  font-size: clamp(15rem, 50vw, 15.5rem);
   font-weight: 400;
-  letter-spacing: 0.18em;
-  text-transform: lowercase;
   color: #f4f1ea;
 }
 
@@ -64,6 +73,15 @@ body {
   background: rgba(44, 58, 40, 0.96);
   border-color: #ffb700;
   transform: translateY(-1px);
+}
+
+.splash-footer {
+  position: fixed;
+  bottom: 0;
+  right: 0;
+  padding: 0.5rem 1rem;
+  font-size: 0.9rem;
+  color: #f4f1ea;
 }
 
 #top-nav-bar {

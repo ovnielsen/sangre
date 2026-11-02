@@ -105,6 +105,7 @@ function glbProtectionPlugin() {
               const { payload, serverPubBase64 } = encryptWithEphemeralEcdh(raw, clientPubHeader);
               res.statusCode = 200;
               res.setHeader('Content-Type', 'application/x-r3f-encrypted');
+              res.setHeader('Content-Length', String(payload.byteLength));
               res.setHeader('X-Content-Type-Options', 'nosniff');
               res.setHeader('Cache-Control', 'no-store');
               res.setHeader('x-r3f-server-pub', serverPubBase64);

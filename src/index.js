@@ -67,10 +67,19 @@ function isProtectedHost(url) {
   );
 }
 
+function isShowcaseHost(url) {
+  return (
+    url.hostname === 'horoscopo.sangreylirios.space' ||
+    url.hostname.startsWith('horoscopo.') ||
+    url.searchParams.get('subdomain') === 'horoscopo'
+  );
+}
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
     const onProtectedSubdomain = isProtectedHost(url);
+    const onShowcaseSubdomain = isShowcaseHost(url);
 
     if (url.pathname === '/api/asset-key') {
       return new Response('Forbidden: Static key endpoint is disabled.', { status: 403 });
@@ -78,23 +87,33 @@ export default {
 
     // Route guard for protected pages (/vr and /planner)
     if (url.pathname.startsWith('/vr') || url.pathname.startsWith('/planner')) {
-      if (!onProtectedSubdomain) {
-        return Response.redirect(`${url.origin}/`, 302);
-      }
-      const authed = await isClerkAuthenticated(request, env);
-      if (!authed) {
-        return Response.redirect(`${url.origin}/`, 302);
+      if (onShowcaseSubdomain) {
+        if (url.pathname.startsWith('/vr')) {
+          return Response.redirect(`${url.origin}/planner.html`, 302);
+        }
+      } else {
+        if (!onProtectedSubdomain) {
+          return Response.redirect(`${url.origin}/`, 302);
+        }
+        const authed = await isClerkAuthenticated(request, env);
+        if (!authed) {
+          return Response.redirect(`${url.origin}/`, 302);
+        }
       }
     }
 
     // Ephemeral ECDH P-256 handshake for protected 3D asset packs
     if (url.pathname.startsWith('/api/asset-pack/')) {
-      if (!onProtectedSubdomain) {
-        return new Response('Forbidden: Protected subdomain required.', { status: 403 });
+      if (!onProtectedSubdomain && !onShowcaseSubdomain) {
+        return new Response('Forbidden: Protected or showcase subdomain required.', {
+          status: 403,
+        });
       }
-      const authed = await isClerkAuthenticated(request, env);
-      if (!authed) {
-        return new Response('Unauthorized', { status: 401 });
+      if (!onShowcaseSubdomain) {
+        const authed = await isClerkAuthenticated(request, env);
+        if (!authed) {
+          return new Response('Unauthorized', { status: 401 });
+        }
       }
 
       const clientPubHeader = request.headers.get('x-r3f-client-pub');
@@ -118,6 +137,7 @@ export default {
         status: 200,
         headers: {
           'Content-Type': 'application/x-r3f-encrypted',
+          'Content-Length': String(payload.byteLength),
           'X-Content-Type-Options': 'nosniff',
           'Cache-Control': 'no-store',
           'x-r3f-server-pub': serverPubBase64,

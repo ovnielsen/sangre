@@ -54,7 +54,7 @@ function getDefaultPlants(): SpawnedPlant[] {
 
 function App() {
   const [isShowcaseMode] = useState(() => detectShowcaseMode());
-  const [isPencilDraft, setIsPencilDraft] = useState(false);
+  const isPencilDraft = isShowcaseMode;
   const [isSceneReady, setIsSceneReady] = useState(false);
   const [isWelcomeOpen, setIsWelcomeOpen] = useState(true);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -87,10 +87,6 @@ function App() {
       }
       return next;
     });
-  }, []);
-
-  const togglePencilDraft = useCallback(() => {
-    setIsPencilDraft((prev) => !prev);
   }, []);
 
   const toggleMenu = useCallback(() => {
@@ -216,12 +212,6 @@ function App() {
         return;
       }
 
-      if (isShowcaseMode && event.code === 'KeyP') {
-        event.preventDefault();
-        togglePencilDraft();
-        return;
-      }
-
       if (isShowcaseMode) return;
       if (isWelcomeOpen && !isSceneReady) return;
 
@@ -264,7 +254,6 @@ function App() {
     isShowcaseMode,
     isWelcomeOpen,
     toggleMenu,
-    togglePencilDraft,
     toggleStartMenu,
     toggleWelcome,
   ]);
@@ -322,17 +311,6 @@ function App() {
               <span>START / SAVE</span>
             </button>
           </>
-        )}
-        {isShowcaseMode && (
-          <button
-            type="button"
-            className={`cs-hud-buy-btn ${isPencilDraft ? 'is-active' : ''}`}
-            data-testid="hud-toggle-pencil-draft"
-            onClick={togglePencilDraft}
-          >
-            <span className="cs-hud-key">P</span>
-            <span>{isPencilDraft ? 'PENCIL DRAFT: ON' : 'PENCIL DRAFT: OFF'}</span>
-          </button>
         )}
         <button
           type="button"

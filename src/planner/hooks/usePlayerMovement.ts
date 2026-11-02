@@ -3,8 +3,8 @@ import { useEffect, useRef } from 'react';
 import type { MutableRefObject } from 'react';
 import { Camera, Euler, Object3D, Vector3 } from 'three';
 
-export const PLAYER_SPEED = 6;
-export const JUMP_FORCE = 7;
+export const PLAYER_SPEED = 3;
+export const JUMP_FORCE = 3;
 export const MOUSE_SENSITIVITY = 0.0022;
 export const MAX_PITCH = Math.PI / 2 - 0.05;
 export const FLOOR_Y = 0.85;

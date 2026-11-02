@@ -115,7 +115,7 @@ export function StartMenu({
         <header className="cs-buy-header">
           <div className="cs-buy-title">
             <span className="cs-buy-icon">◈</span>
-            <span>LIMONERA COMMAND // SAVE & LOAD PLANT POSITIONS</span>
+            <span>SAVE & LOAD PLANT POSITIONS</span>
           </div>
           <div className="cs-buy-subtitle" data-testid="clerk-operator-badge">
             OPERATOR: {clerkUser.displayName} [{clerkUser.id}]

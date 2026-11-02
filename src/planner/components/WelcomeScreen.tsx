@@ -75,18 +75,10 @@ export function WelcomeScreen({
                   <span className="cs-control-desc">Release / toggle free mouse cursor</span>
                 </div>
                 {readOnly && (
-                  <>
-                    <div className="cs-control-row">
-                      <span className="cs-key-badge">P</span>
-                      <span className="cs-control-desc">
-                        Toggle Pencil Draft (Toon + Sketch Outline) building style
-                      </span>
-                    </div>
-                    <div className="cs-control-row">
-                      <span className="cs-key-badge">H</span>
-                      <span className="cs-control-desc">Reopen this controls guide anytime</span>
-                    </div>
-                  </>
+                  <div className="cs-control-row">
+                    <span className="cs-key-badge">H</span>
+                    <span className="cs-control-desc">Reopen this controls guide anytime</span>
+                  </div>
                 )}
               </div>
             </section>

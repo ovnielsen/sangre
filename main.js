@@ -37,6 +37,12 @@ function getSaviaUrl(path, url) {
   return target.toString();
 }
 
+function getMainHomeUrl(url) {
+  const host = url.hostname.replace(/^(horoscopo|savia)\./, '');
+  const portPart = url.port ? `:${url.port}` : '';
+  return `${url.protocol}//${host}${portPart}/`;
+}
+
 function hasClerkSearchParams(url) {
   for (const key of url.searchParams.keys()) {
     if (key.startsWith('__clerk_')) {
@@ -116,6 +122,15 @@ async function init() {
     if (!isPlannerPage) {
       window.location.replace(withSubdomainParam('/planner.html', url));
       return;
+    }
+    const navEl = document.getElementById('nav');
+    if (navEl) {
+      const homeHref = getMainHomeUrl(url);
+      navEl.innerHTML = `
+        <div id="top-nav-bar">
+          <a href="${homeHref}" class="nav-mode-link">HOME</a>
+        </div>
+      `;
     }
     window.__SHOWCASE_MODE__ = true;
     window.__CLERK_AUTHENTICATED__ = true;

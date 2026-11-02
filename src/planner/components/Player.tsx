@@ -8,6 +8,7 @@ export type { HudMode } from '../utils/playerHud.ts';
 export interface PlayerProps {
   position?: [number, number, number];
   isMenuOpen?: boolean;
+  readOnly?: boolean;
   spawnPositionRef?: MutableRefObject<[number, number, number]>;
 }
 
@@ -15,7 +16,12 @@ export interface PlayerProps {
  * First-person Player entity composing physics movement/mouse-look (`usePlayerMovement`)
  * with plant grabbing, wall-snapping, and HUD state (`usePlantInteraction`).
  */
-export function Player({ position, isMenuOpen = false, spawnPositionRef }: PlayerProps) {
+export function Player({
+  position,
+  isMenuOpen = false,
+  readOnly = false,
+  spawnPositionRef,
+}: PlayerProps) {
   const { gl, camera: initialCamera } = useThree();
 
   const { colliderRef, menuOpenRef, shiftHeldRef, rightVectorRef, stepMovement } =
@@ -32,6 +38,7 @@ export function Player({ position, isMenuOpen = false, spawnPositionRef }: Playe
     shiftHeldRef,
     rightVectorRef,
     spawnPositionRef,
+    readOnly,
   });
 
   useFrame(({ camera, raycaster, scene }) => {

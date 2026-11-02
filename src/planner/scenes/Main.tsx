@@ -8,11 +8,16 @@ import { DragModel } from '../models/DragModel.tsx';
 import { GltfModel } from '../models/GltfModel.tsx';
 import { Ground } from '../components/Ground.tsx';
 import { Player } from '../components/Player.tsx';
+import { useProtectedGLTF } from '../hooks/useProtectedGLTF.ts';
 import { Stats } from '@react-three/drei';
+
+useProtectedGLTF.preload(buildingPath);
 
 export interface MainProps {
   spawnedPlants: SpawnedPlant[];
   isMenuOpen: boolean;
+  readOnly?: boolean;
+  pencilDraft?: boolean;
   spawnPositionRef: MutableRefObject<[number, number, number]>;
   onSceneReady?: () => void;
 }
@@ -26,7 +31,14 @@ function SceneReadySignal({ onReady }: { onReady?: () => void }) {
   return null;
 }
 
-function Main({ spawnedPlants, isMenuOpen, spawnPositionRef, onSceneReady }: MainProps) {
+function Main({
+  spawnedPlants,
+  isMenuOpen,
+  readOnly = false,
+  pencilDraft = false,
+  spawnPositionRef,
+  onSceneReady,
+}: MainProps) {
   const [ref] = usePlane(() => ({
     rotation: [-Math.PI / 2, 0, 0],
     position: [0, 0.85, 0],
@@ -38,10 +50,15 @@ function Main({ spawnedPlants, isMenuOpen, spawnPositionRef, onSceneReady }: Mai
       <Player
         position={[1, 1.25, 0]}
         isMenuOpen={isMenuOpen}
+        readOnly={readOnly}
         spawnPositionRef={spawnPositionRef}
       />
       <Suspense fallback={null}>
-        <GltfModel position={[5, 0.85, 0]} modelPath={buildingPath} />
+        <GltfModel
+          position={[5, 0.85, 0]}
+          modelPath={buildingPath}
+          pencilDraft={pencilDraft}
+        />
         {spawnedPlants.map((entry) => (
           <DragModel
             key={entry.instanceId}
@@ -50,11 +67,13 @@ function Main({ spawnedPlants, isMenuOpen, spawnPositionRef, onSceneReady }: Mai
             initialPosition={entry.initialPosition}
             autoGrab={entry.autoGrab}
             initialPinned={entry.initialPinned}
+            readOnly={readOnly}
+            pencilDraft={pencilDraft}
           />
         ))}
         <SceneReadySignal onReady={onSceneReady} />
       </Suspense>
-      <Ground ref={ref} position={[0, 0.85, 0]} />
+      <Ground ref={ref} position={[0, 0.85, 0]} pencilDraft={pencilDraft} />
     </>
   );
 

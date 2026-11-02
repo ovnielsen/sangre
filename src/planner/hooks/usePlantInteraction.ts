@@ -24,6 +24,7 @@ export interface UsePlantInteractionOptions {
   shiftHeldRef: MutableRefObject<boolean>;
   rightVectorRef: MutableRefObject<Vector3>;
   spawnPositionRef?: MutableRefObject<[number, number, number]>;
+  readOnly?: boolean;
 }
 
 export interface StepInteractionParams {
@@ -44,6 +45,7 @@ export function usePlantInteraction({
   shiftHeldRef,
   rightVectorRef,
   spawnPositionRef,
+  readOnly = false,
 }: UsePlantInteractionOptions) {
   const cameraRef = useRef(initialCamera);
   const freeCursorMode = useRef(false);
@@ -141,6 +143,20 @@ export function usePlantInteraction({
       if (menuOpenRef.current) return;
       const moved = Math.hypot(event.clientX - downX, event.clientY - downY);
       if (event.button === 0 && moved < 5 && !freeCursorMode.current) {
+        if (readOnly) {
+          if (document.pointerLockElement !== domElement) {
+            try {
+              const res = domElement.requestPointerLock?.();
+              if (res && typeof (res as Promise<unknown>).catch === 'function') {
+                (res as Promise<unknown>).catch(() => {});
+              }
+            } catch {
+              // Ignore pointer lock rejection
+            }
+          }
+          return;
+        }
+
         // If pointer is not locked yet and we aren't holding a plant, this click only locks the pointer
         if (document.pointerLockElement !== domElement && !grabbedGroup.current) {
           try {
@@ -170,7 +186,7 @@ export function usePlantInteraction({
     };
 
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (menuOpenRef.current || event.repeat) return;
+      if (readOnly || menuOpenRef.current || event.repeat) return;
 
       if (event.code === 'KeyE') {
         const withShift = event.shiftKey || shiftHeldRef.current;
@@ -205,9 +221,12 @@ export function usePlantInteraction({
       domElement.removeEventListener('pointerup', handlePointerUp);
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [domElement, menuOpenRef, shiftHeldRef]);
+  }, [domElement, menuOpenRef, readOnly, shiftHeldRef]);
 
   const stepInteraction = ({ camera, raycaster, scene }: StepInteractionParams) => {
+    if (readOnly) {
+      return;
+    }
     // 1. Update center-crosshair hold position in world space
     targetWorldPos.current
       .set(0, shiftHeldRef.current ? 0.15 : -0.1, -HOLD_DISTANCE)

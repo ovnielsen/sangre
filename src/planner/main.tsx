@@ -5,6 +5,7 @@ import App from './App.tsx';
 declare global {
   interface Window {
     __CLERK_AUTHENTICATED__?: boolean;
+    __SHOWCASE_MODE__?: boolean;
   }
 }
 

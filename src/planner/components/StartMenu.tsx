@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import {
   captureCurrentPlantLayout,
   deleteSlotForUser,
+  exportLayoutToJsonFile,
   getActiveClerkUser,
   loadUserSaveSlots,
   saveSlotForUser,
@@ -94,6 +95,14 @@ export function StartMenu({
     setStatusBanner(`CLEARED SLOT #${slotId}`);
   };
 
+  const handleExportCurrentScene = () => {
+    const currentPlants = captureCurrentPlantLayout();
+    exportLayoutToJsonFile('Horoscopo Showcase Layout', currentPlants);
+    setStatusBanner(
+      `EXPORTED ${currentPlants.length} PLANT(S) TO HOROSCOPO-LAYOUT.JSON`
+    );
+  };
+
   return (
     <div
       className="cs-buy-overlay"
@@ -106,7 +115,7 @@ export function StartMenu({
         <header className="cs-buy-header">
           <div className="cs-buy-title">
             <span className="cs-buy-icon">◈</span>
-            <span>LIMONERA COMMAND // SAVE & LOAD PLANT POSITIONS</span>
+            <span>SAVE & LOAD PLANT POSITIONS</span>
           </div>
           <div className="cs-buy-subtitle" data-testid="clerk-operator-badge">
             OPERATOR: {clerkUser.displayName} [{clerkUser.id}]
@@ -222,6 +231,14 @@ export function StartMenu({
                 onClick={onResetDefault}
               >
                 RESET DEFAULT SCENE
+              </button>
+              <button
+                type="button"
+                className="cs-slot-action-btn is-save"
+                data-testid="scene-export-json"
+                onClick={handleExportCurrentScene}
+              >
+                EXPORT JSON
               </button>
             </div>
 

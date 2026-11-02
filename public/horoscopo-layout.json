@@ -1,0 +1,889 @@
+{
+  "slotId": 1,
+  "label": "Horoscopo Showcase Layout",
+  "updatedAt": "2026-11-02T14:42:15.039Z",
+  "plants": [
+    {
+      "plantId": "monstera-classic",
+      "position": [
+        -0.789,
+        1.49,
+        6.31
+      ],
+      "pinned": false
+    },
+    {
+      "plantId": "boston-lush-fern",
+      "position": [
+        -3.169,
+        3.307,
+        5.962
+      ],
+      "pinned": true
+    },
+    {
+      "plantId": "boston-lush-fern",
+      "position": [
+        -1.609,
+        3.226,
+        5.962
+      ],
+      "pinned": true
+    },
+    {
+      "plantId": "boston-lush-fern",
+      "position": [
+        -0.354,
+        2.929,
+        5.962
+      ],
+      "pinned": true
+    },
+    {
+      "plantId": "boston-lush-fern",
+      "position": [
+        -2.32,
+        2.825,
+        5.962
+      ],
+      "pinned": true
+    },
+    {
+      "plantId": "boston-lush-fern",
+      "position": [
+        0.561,
+        2.532,
+        5.962
+      ],
+      "pinned": true
+    },
+    {
+      "plantId": "boston-lush-fern",
+      "position": [
+        0.81,
+        3.301,
+        5.962
+      ],
+      "pinned": true
+    },
+    {
+      "plantId": "boston-lush-fern",
+      "position": [
+        -5.828,
+        2.737,
+        7.823
+      ],
+      "pinned": true
+    },
+    {
+      "plantId": "boston-lush-fern",
+      "position": [
+        -5.828,
+        2.285,
+        8.693
+      ],
+      "pinned": true
+    },
+    {
+      "plantId": "boston-lush-fern",
+      "position": [
+        -5.828,
+        3.165,
+        9.685
+      ],
+      "pinned": true
+    },
+    {
+      "plantId": "boston-lush-fern",
+      "position": [
+        -5.828,
+        3.016,
+        15.137
+      ],
+      "pinned": true
+    },
+    {
+      "plantId": "boston-lush-fern",
+      "position": [
+        -5.614,
+        2.549,
+        17.156
+      ],
+      "pinned": true
+    },
+    {
+      "plantId": "boston-lush-fern",
+      "position": [
+        -4.375,
+        3.18,
+        17.156
+      ],
+      "pinned": true
+    },
+    {
+      "plantId": "boston-lush-fern",
+      "position": [
+        -5.828,
+        2.262,
+        14.087
+      ],
+      "pinned": true
+    },
+    {
+      "plantId": "boston-lush-fern",
+      "position": [
+        -5.828,
+        2.786,
+        13.087
+      ],
+      "pinned": true
+    },
+    {
+      "plantId": "boston-lush-fern",
+      "position": [
+        -5.828,
+        2.532,
+        11.903
+      ],
+      "pinned": true
+    },
+    {
+      "plantId": "boston-lush-fern",
+      "position": [
+        -5.828,
+        2.335,
+        10.511
+      ],
+      "pinned": true
+    },
+    {
+      "plantId": "boston-lush-fern",
+      "position": [
+        -5.828,
+        3.262,
+        11.261
+      ],
+      "pinned": true
+    },
+    {
+      "plantId": "boston-lush-fern",
+      "position": [
+        -3.086,
+        2.552,
+        17.156
+      ],
+      "pinned": true
+    },
+    {
+      "plantId": "boston-lush-fern",
+      "position": [
+        -1.997,
+        3.129,
+        17.156
+      ],
+      "pinned": true
+    },
+    {
+      "plantId": "boston-lush-fern",
+      "position": [
+        -1.014,
+        2.645,
+        17.156
+      ],
+      "pinned": true
+    },
+    {
+      "plantId": "boston-lush-fern",
+      "position": [
+        0.029,
+        3.159,
+        17.156
+      ],
+      "pinned": true
+    },
+    {
+      "plantId": "boston-lush-fern",
+      "position": [
+        0.723,
+        2.894,
+        15.988
+      ],
+      "pinned": true
+    },
+    {
+      "plantId": "boston-lush-fern",
+      "position": [
+        0.723,
+        3.153,
+        9.544
+      ],
+      "pinned": true
+    },
+    {
+      "plantId": "boston-lush-fern",
+      "position": [
+        0.723,
+        2.676,
+        10.692
+      ],
+      "pinned": true
+    },
+    {
+      "plantId": "boston-lush-fern",
+      "position": [
+        0.723,
+        3.158,
+        11.93
+      ],
+      "pinned": true
+    },
+    {
+      "plantId": "boston-lush-fern",
+      "position": [
+        0.723,
+        2.722,
+        13.017
+      ],
+      "pinned": true
+    },
+    {
+      "plantId": "boston-lush-fern",
+      "position": [
+        0.723,
+        3.113,
+        14.465
+      ],
+      "pinned": true
+    },
+    {
+      "plantId": "golden-pothos",
+      "position": [
+        -1.283,
+        1.548,
+        8.726
+      ],
+      "pinned": true
+    },
+    {
+      "plantId": "golden-pothos",
+      "position": [
+        -0.96,
+        2.001,
+        9.132
+      ],
+      "pinned": true
+    },
+    {
+      "plantId": "golden-pothos",
+      "position": [
+        -0.71,
+        2.313,
+        9.132
+      ],
+      "pinned": true
+    },
+    {
+      "plantId": "golden-pothos",
+      "position": [
+        -0.398,
+        2.753,
+        8.68
+      ],
+      "pinned": true
+    },
+    {
+      "plantId": "golden-pothos",
+      "position": [
+        -3.229,
+        3.494,
+        8.643
+      ],
+      "pinned": true
+    },
+    {
+      "plantId": "golden-pothos",
+      "position": [
+        -3.229,
+        1.298,
+        8.655
+      ],
+      "pinned": false
+    },
+    {
+      "plantId": "golden-pothos",
+      "position": [
+        -3.547,
+        1.775,
+        8.247
+      ],
+      "pinned": true
+    },
+    {
+      "plantId": "golden-pothos",
+      "position": [
+        -0.728,
+        3.293,
+        8.247
+      ],
+      "pinned": true
+    },
+    {
+      "plantId": "golden-pothos",
+      "position": [
+        -4.11,
+        2.267,
+        8.514
+      ],
+      "pinned": true
+    },
+    {
+      "plantId": "golden-pothos",
+      "position": [
+        -3.668,
+        2.844,
+        9.132
+      ],
+      "pinned": true
+    },
+    {
+      "plantId": "golden-pothos",
+      "position": [
+        -3.271,
+        1.298,
+        13.487
+      ],
+      "pinned": false
+    },
+    {
+      "plantId": "golden-pothos",
+      "position": [
+        -0.464,
+        1.298,
+        13.91
+      ],
+      "pinned": false
+    },
+    {
+      "plantId": "golden-pothos",
+      "position": [
+        -0.829,
+        1.806,
+        14.007
+      ],
+      "pinned": true
+    },
+    {
+      "plantId": "golden-pothos",
+      "position": [
+        -1.283,
+        2.161,
+        14.31
+      ],
+      "pinned": true
+    },
+    {
+      "plantId": "golden-pothos",
+      "position": [
+        -0.907,
+        2.589,
+        14.892
+      ],
+      "pinned": true
+    },
+    {
+      "plantId": "golden-pothos",
+      "position": [
+        -0.398,
+        3.199,
+        14.633
+      ],
+      "pinned": true
+    },
+    {
+      "plantId": "golden-pothos",
+      "position": [
+        -3.229,
+        1.62,
+        14.507
+      ],
+      "pinned": true
+    },
+    {
+      "plantId": "golden-pothos",
+      "position": [
+        -3.532,
+        2.28,
+        14.892
+      ],
+      "pinned": true
+    },
+    {
+      "plantId": "golden-pothos",
+      "position": [
+        -4.11,
+        2.764,
+        14.509
+      ],
+      "pinned": true
+    },
+    {
+      "plantId": "golden-pothos",
+      "position": [
+        -3.557,
+        3.326,
+        14.007
+      ],
+      "pinned": true
+    },
+    {
+      "plantId": "elephant-ear",
+      "position": [
+        -5.282,
+        1.586,
+        6.745
+      ],
+      "pinned": false
+    },
+    {
+      "plantId": "elephant-ear",
+      "position": [
+        -3.351,
+        1.586,
+        6.506
+      ],
+      "pinned": false
+    },
+    {
+      "plantId": "elephant-ear",
+      "position": [
+        -4.252,
+        1.586,
+        13.903
+      ],
+      "pinned": false
+    },
+    {
+      "plantId": "elephant-ear",
+      "position": [
+        0.283,
+        1.586,
+        16.04
+      ],
+      "pinned": false
+    },
+    {
+      "plantId": "elephant-ear",
+      "position": [
+        0.349,
+        1.586,
+        6.191
+      ],
+      "pinned": false
+    },
+    {
+      "plantId": "monstera-classic",
+      "position": [
+        -4.532,
+        1.49,
+        6.533
+      ],
+      "pinned": false
+    },
+    {
+      "plantId": "monstera-classic",
+      "position": [
+        -5.61,
+        1.49,
+        16.686
+      ],
+      "pinned": false
+    },
+    {
+      "plantId": "monstera-classic",
+      "position": [
+        0.444,
+        1.49,
+        16.97
+      ],
+      "pinned": false
+    },
+    {
+      "plantId": "monstera-classic",
+      "position": [
+        -2.375,
+        1.49,
+        16.127
+      ],
+      "pinned": false
+    },
+    {
+      "plantId": "monstera-classic",
+      "position": [
+        0.379,
+        1.49,
+        11.207
+      ],
+      "pinned": false
+    },
+    {
+      "plantId": "monstera-classic",
+      "position": [
+        -4.287,
+        1.49,
+        8.881
+      ],
+      "pinned": false
+    },
+    {
+      "plantId": "calathea-orbifolia",
+      "position": [
+        -5.612,
+        1.33,
+        12.435
+      ],
+      "pinned": false
+    },
+    {
+      "plantId": "calathea-orbifolia",
+      "position": [
+        -5.153,
+        1.33,
+        9.894
+      ],
+      "pinned": false
+    },
+    {
+      "plantId": "calathea-orbifolia",
+      "position": [
+        -1.295,
+        1.33,
+        14.413
+      ],
+      "pinned": false
+    },
+    {
+      "plantId": "calathea-orbifolia",
+      "position": [
+        -0.925,
+        1.33,
+        9.205
+      ],
+      "pinned": false
+    },
+    {
+      "plantId": "calathea-orbifolia",
+      "position": [
+        -3.093,
+        1.33,
+        9.611
+      ],
+      "pinned": false
+    },
+    {
+      "plantId": "potted-strelitzia",
+      "position": [
+        0.629,
+        1.618,
+        9.064
+      ],
+      "pinned": false
+    },
+    {
+      "plantId": "potted-strelitzia",
+      "position": [
+        0.516,
+        1.618,
+        13.814
+      ],
+      "pinned": false
+    },
+    {
+      "plantId": "potted-strelitzia",
+      "position": [
+        -1.444,
+        1.618,
+        16.848
+      ],
+      "pinned": false
+    },
+    {
+      "plantId": "potted-strelitzia",
+      "position": [
+        -3.613,
+        1.618,
+        16.829
+      ],
+      "pinned": false
+    },
+    {
+      "plantId": "potted-strelitzia",
+      "position": [
+        -5.635,
+        1.618,
+        11.212
+      ],
+      "pinned": false
+    },
+    {
+      "plantId": "boston-lush-fern",
+      "position": [
+        -3.313,
+        3.185,
+        5.184
+      ],
+      "pinned": true
+    },
+    {
+      "plantId": "boston-lush-fern",
+      "position": [
+        -2.483,
+        2.855,
+        5.184
+      ],
+      "pinned": true
+    },
+    {
+      "plantId": "boston-lush-fern",
+      "position": [
+        -1.84,
+        3.186,
+        5.184
+      ],
+      "pinned": true
+    },
+    {
+      "plantId": "boston-lush-fern",
+      "position": [
+        -0.458,
+        2.949,
+        5.184
+      ],
+      "pinned": true
+    },
+    {
+      "plantId": "boston-lush-fern",
+      "position": [
+        0.375,
+        2.556,
+        5.184
+      ],
+      "pinned": true
+    },
+    {
+      "plantId": "boston-lush-fern",
+      "position": [
+        0.594,
+        3.248,
+        5.184
+      ],
+      "pinned": true
+    },
+    {
+      "plantId": "boston-lush-fern",
+      "position": [
+        -1.337,
+        2.561,
+        5.184
+      ],
+      "pinned": true
+    },
+    {
+      "plantId": "potted-strelitzia",
+      "position": [
+        -3.32,
+        1.618,
+        4.705
+      ],
+      "pinned": false
+    },
+    {
+      "plantId": "potted-strelitzia",
+      "position": [
+        1.066,
+        1.618,
+        4.852
+      ],
+      "pinned": false
+    },
+    {
+      "plantId": "calathea-orbifolia",
+      "position": [
+        0.403,
+        1.33,
+        4.686
+      ],
+      "pinned": false
+    },
+    {
+      "plantId": "calathea-orbifolia",
+      "position": [
+        -2.792,
+        1.33,
+        4.818
+      ],
+      "pinned": false
+    },
+    {
+      "plantId": "calathea-orbifolia",
+      "position": [
+        -4.124,
+        1.33,
+        4.71
+      ],
+      "pinned": false
+    },
+    {
+      "plantId": "calathea-orbifolia",
+      "position": [
+        1.749,
+        1.33,
+        4.793
+      ],
+      "pinned": false
+    },
+    {
+      "plantId": "boston-lush-fern",
+      "position": [
+        -3.192,
+        2.51,
+        5.184
+      ],
+      "pinned": true
+    },
+    {
+      "plantId": "monstera-classic",
+      "position": [
+        -1.33,
+        1.49,
+        4.751
+      ],
+      "pinned": false
+    },
+    {
+      "plantId": "elephant-ear",
+      "position": [
+        4.141,
+        1.586,
+        7.657
+      ],
+      "pinned": false
+    },
+    {
+      "plantId": "elephant-ear",
+      "position": [
+        1.642,
+        1.586,
+        7.902
+      ],
+      "pinned": false
+    },
+    {
+      "plantId": "potted-strelitzia",
+      "position": [
+        2.922,
+        1.618,
+        7.967
+      ],
+      "pinned": false
+    },
+    {
+      "plantId": "boston-lush-fern",
+      "position": [
+        1.601,
+        3.077,
+        8.102
+      ],
+      "pinned": true
+    },
+    {
+      "plantId": "boston-lush-fern",
+      "position": [
+        2.535,
+        3.25,
+        8.102
+      ],
+      "pinned": true
+    },
+    {
+      "plantId": "boston-lush-fern",
+      "position": [
+        3.129,
+        2.705,
+        8.102
+      ],
+      "pinned": true
+    },
+    {
+      "plantId": "boston-lush-fern",
+      "position": [
+        4.016,
+        3.216,
+        8.102
+      ],
+      "pinned": true
+    },
+    {
+      "plantId": "boston-lush-fern",
+      "position": [
+        4.356,
+        3.189,
+        7.051
+      ],
+      "pinned": true
+    },
+    {
+      "plantId": "boston-lush-fern",
+      "position": [
+        4.356,
+        2.744,
+        6.192
+      ],
+      "pinned": true
+    },
+    {
+      "plantId": "boston-lush-fern",
+      "position": [
+        4.356,
+        3.244,
+        5.492
+      ],
+      "pinned": true
+    },
+    {
+      "plantId": "potted-strelitzia",
+      "position": [
+        4.256,
+        1.618,
+        5.695
+      ],
+      "pinned": false
+    },
+    {
+      "plantId": "potted-strelitzia",
+      "position": [
+        -5.432,
+        1.618,
+        5.662
+      ],
+      "pinned": false
+    },
+    {
+      "plantId": "monstera-classic",
+      "position": [
+        -4.959,
+        1.49,
+        4.685
+      ],
+      "pinned": false
+    },
+    {
+      "plantId": "boston-lush-fern",
+      "position": [
+        -5.828,
+        3.035,
+        6.902
+      ],
+      "pinned": true
+    }
+  ]
+}

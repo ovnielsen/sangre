@@ -8,6 +8,7 @@
     "build": "vite build",
     "optimize:assets": "node scripts/optimize-glb.mjs",
     "preview": "npm run build && wrangler dev",
+    "deploy:preview": "vite build --mode dev && wrangler preview",
     "deploy": "npm run build && wrangler deploy"
   },
   "devDependencies": {
@@ -41,6 +42,7 @@
     "@react-three/fiber": "^9.8.1",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
-    "three": "^0.186.1"
+    "three": "^0.186.1",
+    "vite-plugin-glsl": "^1.6.2"
   }
 }

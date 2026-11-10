@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 import basicSsl from '@vitejs/plugin-basic-ssl';
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
+import glsl from 'vite-plugin-glsl';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -144,7 +145,7 @@ function glbProtectionPlugin() {
 
 export default defineConfig({
   envPrefix: ['VITE_', 'ENV'],
-  plugins: [basicSsl(), react(), glbProtectionPlugin()],
+  plugins: [basicSsl(), react(), glbProtectionPlugin(),glsl()],
   assetsInclude: [
     '**/*.gltf',
     '**/*.glb',

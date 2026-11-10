@@ -37,6 +37,17 @@ function encryptWithEphemeralEcdh(rawBuffer, clientPubBase64) {
   };
 }
 
+const DEV_CLERK_PUBLISHABLE_KEY = 'pk_test_Y29tcGxldGUta29kaWFrLTY5MDEuY2xlcmsuYWNjb3VudHMuZGV2JA';
+const DEV_CLERK_SECRET_KEY = 'sk_test_grlP3hitYjjfzQbb95ShHnUZaZ4u6SeqILKelgEkQw';
+
+function isPreviewRequestHost(hostname) {
+  return (
+    hostname.endsWith('.workers.dev') ||
+    hostname.startsWith('develop.') ||
+    hostname.startsWith('develop-')
+  );
+}
+
 async function isClerkAuthenticated(request, env) {
   const cookieHeader = request.headers.get('Cookie') || '';
   const sessionToken = cookieHeader
@@ -47,11 +58,23 @@ async function isClerkAuthenticated(request, env) {
 
   if (!sessionToken) return false;
 
-  const clerk = createClerkClient({ secretKey: env.CLERK_SECRET_KEY });
+  const hostname = new URL(request.url).hostname;
+  const useDevKeys =
+    isPreviewRequestHost(hostname) &&
+    (!env.CLERK_PUBLISHABLE_KEY || env.CLERK_PUBLISHABLE_KEY.startsWith('pk_live_'));
+
+  const publishableKey = useDevKeys
+    ? DEV_CLERK_PUBLISHABLE_KEY
+    : env.CLERK_PUBLISHABLE_KEY || DEV_CLERK_PUBLISHABLE_KEY;
+  const secretKey = useDevKeys
+    ? DEV_CLERK_SECRET_KEY
+    : env.CLERK_SECRET_KEY || DEV_CLERK_SECRET_KEY;
+
+  const clerk = createClerkClient({ secretKey });
   try {
     await clerk.authenticateRequest(request, {
-      publishableKey: env.CLERK_PUBLISHABLE_KEY,
-      secretKey: env.CLERK_SECRET_KEY,
+      publishableKey,
+      secretKey,
     });
     return true;
   } catch {
@@ -63,6 +86,7 @@ function isProtectedHost(url) {
   return (
     url.hostname === 'savia.sangreylirios.space' ||
     url.hostname.startsWith('savia.') ||
+    url.hostname.includes('.savia.') ||
     url.searchParams.get('subdomain') === 'savia'
   );
 }
@@ -71,6 +95,7 @@ function isShowcaseHost(url) {
   return (
     url.hostname === 'horoscopo.sangreylirios.space' ||
     url.hostname.startsWith('horoscopo.') ||
+    url.hostname.includes('.horoscopo.') ||
     url.searchParams.get('subdomain') === 'horoscopo'
   );
 }

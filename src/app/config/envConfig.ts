@@ -17,12 +17,20 @@ export function isLocalhostHost(hostname: string = window.location.hostname): bo
   );
 }
 
+export function isPreviewHost(hostname: string = window.location.hostname): boolean {
+  return (
+    hostname.endsWith('.workers.dev') ||
+    hostname.startsWith('develop.') ||
+    hostname.startsWith('develop-')
+  );
+}
+
 /**
- * Prevent Clerk "origin_invalid" on localhost if .env (pk_live_) was loaded instead of .env.dev (pk_test_)
+ * Prevent Clerk "origin_invalid" on localhost or preview URLs if .env (pk_live_) was loaded instead of .env.dev (pk_test_)
  */
 export function getClerkPublishableKey(): string {
   const envKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY as string | undefined;
-  if (isLocalhostHost() && envKey?.startsWith('pk_live_')) {
+  if ((isLocalhostHost() || isPreviewHost()) && envKey?.startsWith('pk_live_')) {
     return DEV_FALLBACK_KEY;
   }
   return envKey || DEV_FALLBACK_KEY;

@@ -22,7 +22,11 @@ function detectShowcaseMode(): boolean {
   if (typeof window === 'undefined') return false;
   if (window.__SHOWCASE_MODE__) return true;
   const host = window.location.hostname;
-  if (host === 'horoscopo.sangreylirios.space' || host.startsWith('horoscopo.')) {
+  if (
+    host === 'horoscopo.sangreylirios.space' ||
+    host.startsWith('horoscopo.') ||
+    host.includes('.horoscopo.')
+  ) {
     return true;
   }
   const params = new URLSearchParams(window.location.search);

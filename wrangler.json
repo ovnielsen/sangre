@@ -6,6 +6,8 @@
 	"compatibility_flags": [
 		"nodejs_compat"
 	],
+	"workers_dev": true,
+	"preview_urls": true,
 	"assets": {
 		"directory": "./dist",
 		"binding": "ASSETS",
@@ -24,7 +26,8 @@
 	},
 	"previews": {
 		"vars": {
-			"CLERK_PUBLISHABLE_KEY": "pk_test_Y29tcGxldGUta29kaWFrLTY5MDEuY2xlcmsuYWNjb3VudHMuZGV2JA"
+			"CLERK_PUBLISHABLE_KEY": "pk_test_Y29tcGxldGUta29kaWFrLTY5MDEuY2xlcmsuYWNjb3VudHMuZGV2JA",
+			"CLERK_SECRET_KEY": "sk_test_grlP3hitYjjfzQbb95ShHnUZaZ4u6SeqILKelgEkQw"
 		}
 	},
 	"observability": {
@@ -54,7 +57,7 @@
 			"zone_name": "sangreylirios.space",
 			"custom_domain": true,
 			"enabled": true,
-			"previews_enabled": false
+			"previews_enabled": true
 		},
 		{
 			"pattern": "savia.sangreylirios.space/*",
@@ -65,7 +68,7 @@
 			"zone_name": "sangreylirios.space",
 			"custom_domain": true,
 			"enabled": true,
-			"previews_enabled": false
+			"previews_enabled": true
 		},
 		{
 			"pattern": "horoscopo.sangreylirios.space/*",
@@ -76,7 +79,7 @@
 			"zone_name": "sangreylirios.space",
 			"custom_domain": true,
 			"enabled": true,
-			"previews_enabled": false
+			"previews_enabled": true
 		}
 	]
 }

@@ -17,19 +17,39 @@ export function isIpHostname(hostname: string): boolean {
   return /^(\d{1,3}\.){3}\d{1,3}$/.test(hostname) || hostname.startsWith('[');
 }
 
+export function isWorkersDevHostname(hostname: string): boolean {
+  return hostname.endsWith('.workers.dev');
+}
+
+export function isSingleHostEnvironment(hostname: string): boolean {
+  return isIpHostname(hostname) || isWorkersDevHostname(hostname);
+}
+
+export function hasProtectedHostname(hostname: string): boolean {
+  return (
+    hostname === 'savia.sangreylirios.space' ||
+    hostname.startsWith(`${SUBDOMAINS.PROTECTED}.`) ||
+    hostname.includes(`.${SUBDOMAINS.PROTECTED}.`)
+  );
+}
+
+export function hasShowcaseHostname(hostname: string): boolean {
+  return (
+    hostname === 'horoscopo.sangreylirios.space' ||
+    hostname.startsWith(`${SUBDOMAINS.SHOWCASE}.`) ||
+    hostname.includes(`.${SUBDOMAINS.SHOWCASE}.`)
+  );
+}
+
 export function isProtectedSubdomain(url: URL): boolean {
   return (
-    url.hostname === 'savia.sangreylirios.space' ||
-    url.hostname.startsWith(`${SUBDOMAINS.PROTECTED}.`) ||
-    url.searchParams.get('subdomain') === SUBDOMAINS.PROTECTED
+    hasProtectedHostname(url.hostname) || url.searchParams.get('subdomain') === SUBDOMAINS.PROTECTED
   );
 }
 
 export function isShowcaseSubdomain(url: URL): boolean {
   return (
-    url.hostname === 'horoscopo.sangreylirios.space' ||
-    url.hostname.startsWith(`${SUBDOMAINS.SHOWCASE}.`) ||
-    url.searchParams.get('subdomain') === SUBDOMAINS.SHOWCASE
+    hasShowcaseHostname(url.hostname) || url.searchParams.get('subdomain') === SUBDOMAINS.SHOWCASE
   );
 }
 
@@ -67,17 +87,22 @@ export function resolveRouteContext(url: URL): RouteContext {
 }
 
 export function getSaviaOrigin(url: URL): string {
-  if (url.hostname.startsWith(`${SUBDOMAINS.PROTECTED}.`) || isIpHostname(url.hostname)) {
+  if (hasProtectedHostname(url.hostname) || isSingleHostEnvironment(url.hostname)) {
     return url.origin;
   }
   const portPart = url.port ? `:${url.port}` : '';
-  return `${url.protocol}//${SUBDOMAINS.PROTECTED}.${url.hostname}${portPart}`;
+  const previewMatch = url.hostname.match(/^([^.]+)\.(sangreylirios\.space)$/i);
+  if (previewMatch && previewMatch[1] !== SUBDOMAINS.SHOWCASE) {
+    return `${url.protocol}//${previewMatch[1]}.${SUBDOMAINS.PROTECTED}.${previewMatch[2]}${portPart}`;
+  }
+  const baseHost = url.hostname.replace(new RegExp(`^${SUBDOMAINS.SHOWCASE}\\.`), '');
+  return `${url.protocol}//${SUBDOMAINS.PROTECTED}.${baseHost}${portPart}`;
 }
 
 export function getSaviaUrl(path: string, url: URL): string {
   const saviaOrigin = getSaviaOrigin(url);
   const target = new URL(path, saviaOrigin);
-  if (!target.hostname.startsWith(`${SUBDOMAINS.PROTECTED}.`)) {
+  if (!hasProtectedHostname(target.hostname)) {
     target.searchParams.set('subdomain', SUBDOMAINS.PROTECTED);
   } else {
     target.searchParams.delete('subdomain');
@@ -86,7 +111,12 @@ export function getSaviaUrl(path: string, url: URL): string {
 }
 
 export function getMainHomeUrl(url: URL): string {
-  const host = url.hostname.replace(/^(horoscopo|savia)\./, '');
+  if (isSingleHostEnvironment(url.hostname)) {
+    return `${url.origin}/`;
+  }
+  const host = url.hostname
+    .replace(/^(horoscopo|savia)\./, '')
+    .replace(/\.(horoscopo|savia)\./, '.');
   const portPart = url.port ? `:${url.port}` : '';
   return `${url.protocol}//${host}${portPart}/`;
 }
@@ -94,10 +124,8 @@ export function getMainHomeUrl(url: URL): string {
 export function withSubdomainParam(path: string, url: URL): string {
   const subdomainParam = url.searchParams.get('subdomain');
   if (
-    (subdomainParam === SUBDOMAINS.PROTECTED &&
-      !url.hostname.startsWith(`${SUBDOMAINS.PROTECTED}.`)) ||
-    (subdomainParam === SUBDOMAINS.SHOWCASE &&
-      !url.hostname.startsWith(`${SUBDOMAINS.SHOWCASE}.`))
+    (subdomainParam === SUBDOMAINS.PROTECTED && !hasProtectedHostname(url.hostname)) ||
+    (subdomainParam === SUBDOMAINS.SHOWCASE && !hasShowcaseHostname(url.hostname))
   ) {
     const sep = path.includes('?') ? '&' : '?';
     return `${path}${sep}subdomain=${subdomainParam}`;

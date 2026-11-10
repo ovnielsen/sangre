@@ -8,6 +8,7 @@
     "build": "vite build",
     "optimize:assets": "node scripts/optimize-glb.mjs",
     "preview": "npm run build && wrangler dev",
+    "deploy:preview": "vite build --mode dev && wrangler preview",
     "deploy": "npm run build && wrangler deploy"
   },
   "devDependencies": {

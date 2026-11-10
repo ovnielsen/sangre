@@ -5,7 +5,6 @@ import {
   resetRedirectCount,
 } from '../auth/redirectGuard.ts';
 import { publishAuthenticatedUserSession } from '../auth/sessionBridge.ts';
-import { SUBDOMAINS } from '../config/envConfig.ts';
 import {
   ProtectedAuthenticatedNavPage,
   ProtectedSplashPage,
@@ -18,7 +17,8 @@ import {
 } from '../pages/shellRenderer.tsx';
 import {
   getSaviaUrl,
-  isIpHostname,
+  hasProtectedHostname,
+  isSingleHostEnvironment,
   type RouteContext,
   stripClerkHandshakeParams,
 } from '../routing/urlRouter.ts';
@@ -50,7 +50,7 @@ export async function handleProtectedFlow(ctx: RouteContext): Promise<void> {
     resetRedirectCount();
 
     // Ensure authenticated users on ?subdomain=savia are redirected onto the savia.* hostname
-    if (!url.hostname.startsWith(`${SUBDOMAINS.PROTECTED}.`) && !isIpHostname(url.hostname)) {
+    if (!hasProtectedHostname(url.hostname) && !isSingleHostEnvironment(url.hostname)) {
       window.location.replace(getSaviaUrl(`${url.pathname}${url.search}${url.hash}`, url));
       return;
     }
